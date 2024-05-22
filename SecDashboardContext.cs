@@ -1,12 +1,17 @@
 ﻿using System.Reflection;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using SecurityDashboard_Backend.DomainModel;
 
 namespace SecurityDashboard_Backend;
 
 public class SecDashboardContext : DbContext
 {
     private readonly string? _databasePath;
+
+    public DbSet<Repository> Repositories => Set<Repository>();
+    public DbSet<PipelineRun> PipelineRuns => Set<PipelineRun>();
+    public DbSet<Finding> Findings => Set<Finding>();
 
     public SecDashboardContext()
     {
@@ -31,5 +36,16 @@ public class SecDashboardContext : DbContext
 
         var connectionStringBuilder = new SqliteConnectionStringBuilder { DataSource = _databasePath };
         optionsBuilder.UseSqlite(connectionStringBuilder.ToString());
+    }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<Finding>()
+            .HasDiscriminator(x => x.Tool)
+            .HasValue<FluidAttacksFinding>(SarifTool.FluidAttacks)
+            .HasValue<GitLeaksFinding>(SarifTool.GitLeaks)
+            .HasValue<OwaspDependencyCheckFinding>(SarifTool.OwaspDependencyCheck);
     }
 }
