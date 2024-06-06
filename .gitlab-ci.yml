@@ -1,0 +1,65 @@
+image: docker:latest
+services:
+  - docker:dind
+
+variables:
+  DOCKER_TLS_CERTDIR: "/certs"
+
+  IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+  IMAGE_TAG_LATEST: $CI_REGISTRY_IMAGE:latest
+
+stages:
+  - package
+  - deploy
+
+docker-build:
+  stage: package
+  script:
+  - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  - docker build -t $IMAGE_TAG -t $IMAGE_TAG_LATEST .
+  - docker push $IMAGE_TAG
+  - docker push $IMAGE_TAG_LATEST
+
+deploy:
+  image: alpine:latest
+  stage: deploy
+  script:
+    - chmod og= $SSH_KEY
+    - apk update && apk add openssh-client
+    - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY"
+    - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker pull $IMAGE_TAG"
+    - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker container rm -f dashboard-backend_production || true"
+    - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker run -d -p 5090:8080 --name dashboard-backend_production $IMAGE_TAG"
+  environment:
+    name: production
+    url: http://$SERVER_IP:5090
+  only:
+    - main
+
+deploy_review_app:
+  image: alpine:latest
+  stage: deploy
+  before_script:
+    - echo $CI_PIPELINE_IID
+    - export REVIEW_PORT="$((5091 + $CI_PIPELINE_IID % 101))"
+    - echo $REVIEW_PORT
+    - export DYNAMIC_ENVIRONMENT_URL="http://$SERVER_IP:$REVIEW_PORT"
+    - echo "DYNAMIC_ENVIRONMENT_URL=$DYNAMIC_ENVIRONMENT_URL" >> deploy.env
+  script:
+    - chmod og= $SSH_KEY
+    - apk update && apk add openssh-client
+    - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY"
+    - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker pull $IMAGE_TAG"
+    - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker container rm -f dashboard-backend_$CI_ENVIRONMENT_SLUG || true"
+    - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker run -d -p $REVIEW_PORT:8080 --name dashboard-backend_$CI_ENVIRONMENT_SLUG $IMAGE_TAG"
+  artifacts:
+    reports:
+      dotenv: deploy.env
+  environment:
+    name: review/$CI_COMMIT_REF_SLUG
+    url: $DYNAMIC_ENVIRONMENT_URL
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: never
+    - if: $CI_COMMIT_BRANCH
+
