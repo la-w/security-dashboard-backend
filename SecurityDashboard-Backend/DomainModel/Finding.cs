@@ -31,5 +31,8 @@ public enum SarifTool
 {
     FluidAttacks,
     GitLeaks,
-    OwaspDependencyCheck
+    OwaspDependencyCheck,
+    Semgrep,
+    Trivy,
+    OwaspZap
 }
