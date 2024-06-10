@@ -1,5 +1,11 @@
+using AspNetCore.Authentication.ApiKey;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using SecurityDashboard_Backend;
+using SecurityDashboard_Backend.Authentication;
+using SecurityDashboard_Backend.Authentication.AuthorizationHandlers;
+using SecurityDashboard_Backend.Utilities;
 using Serilog;
 
 Log.Logger = new LoggerConfiguration()
@@ -14,6 +20,21 @@ try
     var builder = WebApplication.CreateBuilder(args);
 
     // Add services to the container.
+    builder.Services.Configure<ApiKeyConfiguration>(builder.Configuration.GetSection("ApiKey"));
+
+    builder.Services.AddAuthentication(ApiKeyDefaults.AuthenticationScheme)
+        .AddApiKeyInAuthorizationHeader<ApiKeyProvider>(options =>
+        {
+            options.KeyName = "X-API-KEY";
+            options.Realm = "Security Dashboard API";
+        });
+
+    builder.Services.AddAuthorization(options =>
+    {
+        options.AddPolicy(Policies.UsedApiKey, policy => policy.AddRequirements(new UsedApiKeyRequirement()));
+    });
+
+    builder.Services.AddSingleton<IAuthorizationHandler, UsedApiKeyAuthorizationHandler>();
 
     // Add Serilog
     builder.Host.UseSerilog((context, serviceProvider, config) =>
@@ -27,23 +48,45 @@ try
     builder.Services.AddDbContext<SecDashboardContext>(options =>
         options.UseSqlite(builder.Configuration.GetConnectionString("SecDashboard")));
 
-    builder.Services.AddControllers();
+    // Add Remote-IP filter
+    builder.Services.AddRemoteIpCheckActionFilter(builder.Configuration.GetSection("RemoteIpWhitelist").Get<string[]>());
+
+    // Register Controllers and add SARIF Input/Output Formatters as highest priority
+    builder.Services.AddControllers(options =>
+    {
+        options.InputFormatters.Insert(0, new SarifInputFormatter());
+        options.OutputFormatters.Insert(0, new SarifOutputFormatter());
+    });
     // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen();
+
+    // Configure forwarded headers
+    builder.Services.Configure<ForwardedHeadersOptions>(options =>
+    {
+        options.ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedFor;
+
+        options.KnownNetworks.Clear();
+        options.KnownProxies.Clear();
+    });
 
     var app = builder.Build();
 
     // Add Serilog request logging
     app.UseSerilogRequestLogging(options => { options.IncludeQueryInRequestPath = true; });
 
+    // Map remote IPs from proxies
+    app.UseForwardedHeaders();
+
     // Configure the HTTP request pipeline.
     if (app.Environment.IsDevelopment())
     {
+        Log.Warning("Environment is set to Development. Enabling Swagger UI and Swagger Endpoints. *DO NOT USE FOR PRODUCTION!*");
         app.UseSwagger();
         app.UseSwaggerUI();
     }
 
+    app.UseAuthentication();
     app.UseAuthorization();
 
     app.MapControllers();

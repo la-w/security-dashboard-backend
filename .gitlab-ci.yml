@@ -9,15 +9,33 @@ variables:
   IMAGE_TAG_LATEST: $CI_REGISTRY_IMAGE:latest
 
 stages:
+  - test
   - package
   - deploy
   - teardown
+
+test:
+  image: mcr.microsoft.com/dotnet/sdk:8.0
+  stage: test
+  script:
+    - 'dotnet test --results-directory:"artifacts" --collect:"XPlat Code Coverage" --test-adapter-path:. --logger:"junit;LogFilePath=..\artifacts\{assembly}-test-result.xml;MethodFormat=Class;FailureBodyFormat=Verbose"'
+  artifacts:
+    when: always
+    paths:
+      - ./artifacts/*-test-result.xml
+      - ./artifacts/**/coverage.cobertura.xml
+    reports:
+      junit:
+        - ./artifacts/*-test-result.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: ./artifacts/**/coverage.cobertura.xml
 
 docker-build:
   stage: package
   script:
   - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-  - docker build -t $IMAGE_TAG -t $IMAGE_TAG_LATEST .
+  - docker build -t $IMAGE_TAG -t $IMAGE_TAG_LATEST ./SecurityDashboard-Backend
   - docker push $IMAGE_TAG
   - docker push $IMAGE_TAG_LATEST
 
@@ -30,7 +48,7 @@ deploy:
     - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY"
     - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker pull $IMAGE_TAG"
     - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker container rm -f dashboard-backend_production || true"
-    - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker run -d --hostname backend --network nginx_net --name dashboard-backend_production --restart unless-stopped $IMAGE_TAG"
+    - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker run -d --env ApiKey__ApiKey=$BACKEND_API_KEY --hostname backend --network nginx_net --name dashboard-backend_production --restart unless-stopped $IMAGE_TAG"
   environment:
     name: production
     url: https://backend.tbdpwl.dynv6.net
@@ -48,7 +66,7 @@ deploy_review_app:
     - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY"
     - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker pull $IMAGE_TAG"
     - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker container rm -f dashboard-backend-$CI_ENVIRONMENT_SLUG || true"
-    - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker run -d --hostname dashboard-backend-$CI_ENVIRONMENT_SLUG --network nginx_net --name dashboard-backend-$CI_ENVIRONMENT_SLUG --restart unless-stopped $IMAGE_TAG"
+    - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker run -d --env ASPNETCORE_ENVIRONMENT=DEVELOPMENT --env ApiKey__ApiKey=IAmASecretApiKey --hostname dashboard-backend-$CI_ENVIRONMENT_SLUG --network nginx_net --name dashboard-backend-$CI_ENVIRONMENT_SLUG --restart unless-stopped $IMAGE_TAG"
   environment:
     name: review/$CI_COMMIT_REF_SLUG
     url: https://dashboard-backend-$CI_ENVIRONMENT_SLUG.tbdpwl.dynv6.net

@@ -1,6 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
-
-namespace SecurityDashboard_Backend.DomainModel;
+﻿namespace SecurityDashboard_Backend.DomainModel;
 
 public class Repository
 {
