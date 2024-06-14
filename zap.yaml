@@ -1,0 +1,38 @@
+
+env:
+  contexts:
+    - name: Security-Dashboard-Backend
+      url: {REVIEW_URL}
+  parameters:
+    failOnError: true
+    failOnWarning: false
+jobs:
+  - type: import
+    parameters:
+      type: url
+      fileName: zap-urls.txt
+  - type: passiveScan-config
+    parameters:
+      maxAlertsPerRule: 10
+      scanOnlyInScope: true
+  - type: spider
+    parameters:
+      maxDepth: 3
+      maxDuration: 60
+  - type: spiderAjax
+    parameters:
+      maxCrawlDepth: 3
+      maxDuration: 240
+  - type: passiveScan-wait
+    parameters:
+      maxDuration: 5
+  - type: activeScan
+    parameters:
+      maxRuleDurationInMins: 3
+      maxScanDurationInMins: 30
+      delayInMs: 50
+  - type: report
+    parameters:
+      template: sarif-json
+      reportFile: Zap-Report.sarif
+      reportTitle: ZAP Scan Report - Security-Dashboard-Backend

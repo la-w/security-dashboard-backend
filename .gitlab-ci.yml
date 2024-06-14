@@ -10,8 +10,13 @@ variables:
 
 stages:
   - test
+  - sast
+  - secret-detection
+  - dependency-scanning
   - package
+  - container-scanning
   - deploy
+  - dast1
   - teardown
 
 test:
@@ -31,6 +36,65 @@ test:
         coverage_format: cobertura
         path: ./artifacts/**/coverage.cobertura.xml
 
+sast_prepare:
+  stage: sast
+  image:
+    name: alpine/git:latest
+    entrypoint: [""]
+  needs: [semgrep]
+  variables:
+    GIT_CHECKOUT: "false"
+  script:
+    - git branch -D $CI_COMMIT_REF_NAME || true
+    - git checkout -b $CI_COMMIT_REF_NAME
+
+sast_fluid_attacks:
+  stage: sast
+  image: docker.io/fluidattacks/cli:latest
+  needs: [sast_prepare]
+  variables:
+    GIT_CHECKOUT: "false"
+  script:
+    - skims scan ./SAST.fluidattacks.yaml
+  artifacts:
+    paths:
+      - Fluid-Attacks-SAST-Results.sarif
+
+semgrep:
+  stage: sast
+  image: semgrep/semgrep:latest
+  script:
+    - semgrep scan --sarif --sarif-output=Semgrep-Results.sarif .
+  artifacts:
+    paths:
+      - Semgrep-Results.sarif
+
+sast_git_leaks:
+  stage: secret-detection
+  image:
+    name: zricethezav/gitleaks:latest
+    entrypoint: [""]
+  script:
+    - gitleaks detect --exit-code 0 -v -f sarif -r gitleaks-report.sarif
+  artifacts:
+    paths:
+      - gitleaks-report.sarif
+
+owasp_dependency_check:
+  stage: dependency-scanning
+  image:
+    name: registry.gitlab.com/gitlab-ci-utils/docker-dependency-check:latest
+    entrypoint: [""]
+  script:
+    - >
+      /usr/share/dependency-check/bin/dependency-check.sh --scan "./" --format SARIF
+      --project "$CI_PROJECT_NAME" --exclude '**/arbitraryFileWrite.zip' --exclude '**/passwordProtected.zip' --exclude '**/videoExploit.zip'
+  allow_failure: true
+  artifacts:
+    when: always
+    paths:
+      - dependency-check-report.sarif
+
 docker-build:
   stage: package
   script:
@@ -38,6 +102,40 @@ docker-build:
   - docker build -t $IMAGE_TAG -t $IMAGE_TAG_LATEST ./SecurityDashboard-Backend
   - docker push $IMAGE_TAG
   - docker push $IMAGE_TAG_LATEST
+
+container_scanning:
+  stage: container-scanning
+  image:
+    name: docker.io/aquasec/trivy:latest
+    entrypoint: [""]
+  variables:
+    # No need to clone the repo, we exclusively work on artifacts.  See
+    # https://docs.gitlab.com/ee/ci/runners/README.html#git-strategy
+    GIT_STRATEGY: none
+    TRIVY_USERNAME: "$CI_REGISTRY_USER"
+    TRIVY_PASSWORD: "$CI_REGISTRY_PASSWORD"
+    TRIVY_AUTH_URL: "$CI_REGISTRY"
+    FULL_IMAGE_NAME: "$IMAGE_TAG"
+  script:
+    - trivy --version
+    # cache cleanup is needed when scanning images with the same tags, it does not remove the database
+    - time trivy image --clear-cache
+    # update vulnerabilities db
+    - time trivy image --download-db-only --no-progress --cache-dir .trivycache/
+    # Builds report and puts it in the default workdir $CI_PROJECT_DIR, so `artifacts:` can take it from there
+    - time trivy image --exit-code 0 --cache-dir .trivycache/ --no-progress --format sarif
+      --output "$CI_PROJECT_DIR/gl-container-scanning-report.sarif" "$FULL_IMAGE_NAME"
+    # Prints full report
+    - time trivy image --exit-code 0 --cache-dir .trivycache/ --no-progress "$FULL_IMAGE_NAME"
+    # Fail on critical vulnerabilities
+    # - time trivy --exit-code 1 --cache-dir .trivycache/ --severity CRITICAL --no-progress "$FULL_IMAGE_NAME"
+  cache:
+    paths:
+      - .trivycache/
+  # Enables https://docs.gitlab.com/ee/user/application_security/container_scanning/ (Container Scanning report is available on GitLab EE Ultimate or GitLab.com Gold)
+  artifacts:
+    paths:
+      - gl-container-scanning-report.sarif
 
 deploy:
   image: alpine:latest
@@ -62,6 +160,8 @@ deploy_review_app:
     - chmod og= $SSH_KEY
     - apk update && apk add openssh-client jq bash curl
     - bash nginx-api.sh --hostname "dashboard-backend-$CI_ENVIRONMENT_SLUG" --port 8080 up
+    - awk 'BEGIN{port=ENVIRON["CI_ENVIRONMENT_URL"]} {gsub(/\{REVIEW_URL\}/,port)} 1' DAST.fluidattacks.yaml > tmp.yaml && mv tmp.yaml DAST.fluidattacks.yaml
+    - awk 'BEGIN{port=ENVIRON["CI_ENVIRONMENT_URL"]} {gsub(/\{REVIEW_URL\}/,port)} 1' zap.yaml > tmp.yaml && mv tmp.yaml zap.yaml
   script:
     - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY"
     - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker pull $IMAGE_TAG"
@@ -78,6 +178,57 @@ deploy_review_app:
   artifacts:
       paths:
         - nginx-api.sh
+
+dast_prepare:
+  stage: dast1
+  image:
+    name: alpine/git:latest
+    entrypoint: [""]
+  variables:
+    GIT_CHECKOUT: "false"
+  script:
+    - git branch -D $CI_COMMIT_REF_NAME || true
+    - git checkout -b $CI_COMMIT_REF_NAME
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: never
+    - if: $CI_COMMIT_BRANCH
+
+dast_fluid_attacks:
+  stage: dast1
+  image: docker.io/fluidattacks/cli:latest
+  needs: [dast_prepare]
+  variables:
+    GIT_CHECKOUT: "false"
+  script:
+    - skims scan ./DAST.fluidattacks.yaml
+  allow_failure: true
+  artifacts:
+    when: always
+    paths:
+      - Fluid-Attacks-DAST-Results.sarif
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: never
+    - if: $CI_COMMIT_BRANCH
+
+dast_zap:
+  stage: dast1
+  image: ghcr.io/zaproxy/zaproxy:stable
+  needs: [dast_fluid_attacks]
+  variables:
+    GIT_CHECKOUT: "false"
+  script:
+    - zap.sh -cmd -autorun $CI_PROJECT_DIR/zap.yaml
+  allow_failure: true
+  artifacts:
+    when: always
+    paths:
+      - Zap-Report.sarif*
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: never
+    - if: $CI_COMMIT_BRANCH
 
 teardown_review_environment:
   image: alpine:latest
