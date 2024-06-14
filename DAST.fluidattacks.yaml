@@ -1,0 +1,13 @@
+namespace: security-dashboard-backend
+output:
+  file_path: ./Fluid-Attacks-DAST-Results.sarif
+  format: SARIF
+working_dir: .
+language: EN
+
+dast:
+  urls:
+    - {REVIEW_URL}
+  # Optional keys
+  http_checks: true
+  ssl_checks: true

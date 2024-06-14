@@ -1,0 +1,12 @@
+namespace: security-dashboard-backend
+output:
+  file_path: ./Fluid-Attacks-SAST-Results.sarif
+  format: SARIF
+working_dir: .
+language: EN
+sast:
+  include:
+    - glob(*)
+sca:
+  include:
+    - glob(*)
