@@ -1,4 +1,5 @@
-﻿using FluentAssertions;
+﻿using System.Diagnostics.CodeAnalysis;
+using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc.Formatters;
@@ -11,6 +12,7 @@ namespace SecurityDashboard_Backend.Tests.Utilities;
 
 public class SarifOutputFormatterTests
 {
+    [ExcludeFromCodeCoverage(Justification = "Test Helper method")]
     private OutputFormatterWriteContext GetMockedOutputFormatterWriteContext(SarifLog? logToWrite)
     {
         var httpContext = new DefaultHttpContext();

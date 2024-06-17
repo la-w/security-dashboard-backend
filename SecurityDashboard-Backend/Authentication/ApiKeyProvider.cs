@@ -7,12 +7,10 @@ public class ApiKeyProvider : IApiKeyProvider
 {
     public const string ApiKeyOwnerName = "SecurityDashboardApiKey";
 
-    private readonly ILogger<IApiKeyProvider> _logger;
     private readonly ApiKeyConfiguration _apiKeyConfiguration;
 
-    public ApiKeyProvider(ILogger<IApiKeyProvider> logger, IOptions<ApiKeyConfiguration> apiKeyConfiguration)
+    public ApiKeyProvider(IOptions<ApiKeyConfiguration> apiKeyConfiguration)
     {
-        _logger = logger;
         _apiKeyConfiguration = apiKeyConfiguration.Value;
     }
 

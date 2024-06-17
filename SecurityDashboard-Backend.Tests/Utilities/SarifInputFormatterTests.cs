@@ -6,12 +6,14 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.CodeAnalysis.Sarif;
 using NSubstitute;
 using SecurityDashboard_Backend.Utilities;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
 namespace SecurityDashboard_Backend.Tests.Utilities;
 
 public class SarifInputFormatterTests
 {
+    [ExcludeFromCodeCoverage(Justification = "Test Helper method")]
     private InputFormatterContext GetMockedInputFormatterContext()
     {
         var httpContext = new DefaultHttpContext();
