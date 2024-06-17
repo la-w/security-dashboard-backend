@@ -12,9 +12,8 @@ public class ApiKeyProviderTests
     public async Task ProvideAsync_WithValidApiKey_ReturnsApiKey()
     {
         // Arrange
-        var logger = Substitute.For<ILogger<ApiKeyProvider>>();
         var apiKeyConfiguration = new ApiKeyConfiguration { ApiKey = "valid-api-key" };
-        var apiKeyProvider = new ApiKeyProvider(logger, Options.Create(apiKeyConfiguration));
+        var apiKeyProvider = new ApiKeyProvider(Options.Create(apiKeyConfiguration));
 
         // Act
         var apiKey = await apiKeyProvider.ProvideAsync("valid-api-key");
@@ -28,9 +27,8 @@ public class ApiKeyProviderTests
     public async Task ProvideAsync_WithInvalidApiKey_ReturnsNull()
     {
         // Arrange
-        var logger = Substitute.For<ILogger<ApiKeyProvider>>();
         var apiKeyConfiguration = new ApiKeyConfiguration { ApiKey = "valid-api-key" };
-        var apiKeyProvider = new ApiKeyProvider(logger, Options.Create(apiKeyConfiguration));
+        var apiKeyProvider = new ApiKeyProvider(Options.Create(apiKeyConfiguration));
 
         // Act
         var apiKey = await apiKeyProvider.ProvideAsync("invalid-api-key");

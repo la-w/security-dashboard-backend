@@ -2,8 +2,10 @@
 
 public class FluidAttacksFinding : Finding
 {
+    public string? Cvss31Vector { get; set; }
+    public string? Cvss40Vector { get; set; }
+
     public string Kind { get; set; }
     public string Technique { get; set; }
     public string SourceMethod { get; set; }
-    public string DocumentationLink { get; set; }
 }

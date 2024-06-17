@@ -3,14 +3,16 @@ env:
   contexts:
     - name: Security-Dashboard-Backend
       url: {REVIEW_URL}
+      excludePaths:
+        - ".*/swagger.*"
   parameters:
     failOnError: true
     failOnWarning: false
 jobs:
-  - type: import
+  - type: openapi
     parameters:
-      type: url
-      fileName: zap-urls.txt
+      apiUrl: "{REVIEW_URL}/swagger/v1/swagger.json"
+      context: Security-Dashboard-Backend
   - type: passiveScan-config
     parameters:
       maxAlertsPerRule: 10

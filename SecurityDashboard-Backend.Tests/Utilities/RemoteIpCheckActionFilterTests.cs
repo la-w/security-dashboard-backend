@@ -4,15 +4,22 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Routing;
-using Microsoft.Extensions.Logging;
 using NSubstitute;
 using SecurityDashboard_Backend.Utilities;
 using System.Net;
+using Xunit.Abstractions;
 
 namespace SecurityDashboard_Backend.Tests.Utilities;
 
 public class RemoteIpCheckActionFilterTests
 {
+    private readonly ITestOutputHelper _testOutputHelper;
+
+    public RemoteIpCheckActionFilterTests(ITestOutputHelper testOutputHelper)
+    {
+        _testOutputHelper = testOutputHelper;
+    }
+
     private ActionExecutingContext GetMockedActionExecutingContext()
     {
         var httpContext = new DefaultHttpContext();
@@ -27,7 +34,7 @@ public class RemoteIpCheckActionFilterTests
     public void OnActionExecuting_WithWhitelistSetToNull_ShouldNotSetResult()
     {
         // Arrange
-        var logger = Substitute.For<ILogger<RemoteIpCheckActionFilter>>();
+        var logger = _testOutputHelper.CreateLogger<RemoteIpCheckActionFilter>();
         var context = GetMockedActionExecutingContext();
         var filter = new RemoteIpCheckActionFilter(null, logger);
 
@@ -44,7 +51,7 @@ public class RemoteIpCheckActionFilterTests
     public void OnActionExecuting_WithEmptyWhitelist_ShouldNotSetResult()
     {
         // Arrange
-        var logger = Substitute.For<ILogger<RemoteIpCheckActionFilter>>();
+        var logger = _testOutputHelper.CreateLogger<RemoteIpCheckActionFilter>();
         var context = GetMockedActionExecutingContext();
         var filter = new RemoteIpCheckActionFilter([], logger);
 
@@ -61,7 +68,7 @@ public class RemoteIpCheckActionFilterTests
     public void OnActionExecuting_WithNullRemoteIp_ShouldReturnStatusCode403()
     {
         // Arrange
-        var logger = Substitute.For<ILogger<RemoteIpCheckActionFilter>>();
+        var logger = _testOutputHelper.CreateLogger<RemoteIpCheckActionFilter>();
         var context = GetMockedActionExecutingContext();
         var filter = new RemoteIpCheckActionFilter(["127.0.0.1", "::1"], logger);
 
@@ -79,7 +86,7 @@ public class RemoteIpCheckActionFilterTests
     public void OnActionExecuting_WithWhitelistedRemoteIp_ShouldNotSetResult()
     {
         // Arrange
-        var logger = Substitute.For<ILogger<RemoteIpCheckActionFilter>>();
+        var logger = _testOutputHelper.CreateLogger<RemoteIpCheckActionFilter>();
         var context = GetMockedActionExecutingContext();
         var filter = new RemoteIpCheckActionFilter(["127.0.0.1", "::1"], logger);
 
@@ -96,7 +103,7 @@ public class RemoteIpCheckActionFilterTests
     public void OnActionExecuting_WithNonWhitelistedRemoteIp_ShouldReturnStatusCode403()
     {
         // Arrange
-        var logger = Substitute.For<ILogger<RemoteIpCheckActionFilter>>();
+        var logger = _testOutputHelper.CreateLogger<RemoteIpCheckActionFilter>();
         var context = GetMockedActionExecutingContext();
         var filter = new RemoteIpCheckActionFilter(["127.0.0.1", "::1"], logger);
 
@@ -114,7 +121,7 @@ public class RemoteIpCheckActionFilterTests
     public void OnActionExecuting_WithWhitelistedRemoteIpV4MappedToV6_ShouldNotSetResult()
     {
         // Arrange
-        var logger = Substitute.For<ILogger<RemoteIpCheckActionFilter>>();
+        var logger = _testOutputHelper.CreateLogger<RemoteIpCheckActionFilter>();
         var context = GetMockedActionExecutingContext();
         var filter = new RemoteIpCheckActionFilter(["8.8.8.8"], logger);
 
@@ -131,7 +138,7 @@ public class RemoteIpCheckActionFilterTests
     public void OnActionExecuting_WithNonWhitelistedRemoteIpV4MappedToV6_ShouldReturnStatusCode403()
     {
         // Arrange
-        var logger = Substitute.For<ILogger<RemoteIpCheckActionFilter>>();
+        var logger = _testOutputHelper.CreateLogger<RemoteIpCheckActionFilter>();
         var context = GetMockedActionExecutingContext();
         var filter = new RemoteIpCheckActionFilter(["127.0.0.1"], logger);
 

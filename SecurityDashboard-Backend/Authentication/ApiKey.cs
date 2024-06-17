@@ -1,8 +1,10 @@
-﻿using AspNetCore.Authentication.ApiKey;
+﻿using System.Diagnostics.CodeAnalysis;
+using AspNetCore.Authentication.ApiKey;
 using System.Security.Claims;
 
 namespace SecurityDashboard_Backend.Authentication;
 
+[ExcludeFromCodeCoverage(Justification = "Contains no logic")]
 public class ApiKey : IApiKey
 {
     public ApiKey(string key, string owner, List<Claim>? claims = null)

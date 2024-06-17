@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
 
 namespace SecurityDashboard_Backend.DomainModel;
 
@@ -7,6 +8,8 @@ public class PipelineRun
     public int Id { get; set; }
 
     public int PipelineId { get; set; }
+
+    public DateTimeOffset CreatedAt { get; set; }
 
     [MaxLength(300)]
     public string Branch { get; set; }

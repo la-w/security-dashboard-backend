@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using SecurityDashboard_Backend;
 using SecurityDashboard_Backend.Authentication;
 using SecurityDashboard_Backend.Authentication.AuthorizationHandlers;
+using SecurityDashboard_Backend.Services;
 using SecurityDashboard_Backend.Utilities;
 using Serilog;
 
@@ -69,6 +70,9 @@ try
         options.KnownNetworks.Clear();
         options.KnownProxies.Clear();
     });
+
+    // Add custom services
+    builder.Services.AddScoped<ISarifImportService, SarifImportService>();
 
     var app = builder.Build();
 

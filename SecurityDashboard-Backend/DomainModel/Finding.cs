@@ -1,38 +1,50 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.ComponentModel.DataAnnotations;
+using Microsoft.CodeAnalysis.Sarif;
 
 namespace SecurityDashboard_Backend.DomainModel;
 
-[Index(nameof(Cvss31Score))]
-[Index(nameof(Cvss40Score))]
 public abstract class Finding
 {
     public int Id { get; set; }
 
-    public string Location { get; set; }
+    public string Location { get; set; } = string.Empty;
     public SarifTool Tool { get; set; }
-    public string RuleId { get; set; }
-    public string Description { get; set; }
-    public string Snippet { get; set; }
+    public string RuleId { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string Snippet { get; set; } = string.Empty;
     public int SnippetStartLine { get; set; }
+    public int? SnippetStartColumn { get; set; }
     public int? SnippetEndLine { get; set; }
+    public int? SnippetEndColumn { get; set; }
+    public FailureLevel Level { get; set; }
 
-    public decimal? Cvss31Score { get; set; }
-    public string? Cvss31Vector { get; set; }
-    public decimal? Cvss40Score { get; set; }
-    public string? Cvss40Vector { get; set; }
     public List<string> CweIds { get; set; } = new();
     public List<string> SecurityAdvisories { get; set; } = new();
 
     public int PipelineRunId { get; set; }
     public PipelineRun PipelineRun { get; set; }
+
+    public int ToolRuleId { get; set; }
+    public ToolRule ToolRule { get; set; }
 }
 
 public enum SarifTool
 {
+    [Display(Name = "FluidAttacks Scanner")]
     FluidAttacks,
+
+    [Display(Name = "GitLeaks")]
     GitLeaks,
+
+    [Display(Name = "OWASP Dependency-Check")]
     OwaspDependencyCheck,
+
+    [Display(Name = "Semgrep OSS")]
     Semgrep,
+
+    [Display(Name = "Aqua Security Trivy")]
     Trivy,
+
+    [Display(Name = "OWASP ZAP")]
     OwaspZap
 }
