@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http.Features;
+﻿using System.Diagnostics.CodeAnalysis;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.CodeAnalysis.Sarif;
 using System.Text;
@@ -15,6 +16,7 @@ public class SarifOutputFormatter : TextOutputFormatter
         SupportedEncodings.Add(Encoding.UTF8);
     }
 
+    [ExcludeFromCodeCoverage(Justification = "Just a condition check")]
     protected override bool CanWriteType(Type? type)
     {
         // Allow only SarifLog to be written.

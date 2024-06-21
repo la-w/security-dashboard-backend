@@ -27,9 +27,16 @@ public class SarifController : ControllerBase
         _importService = importService;
     }
 
+    /// <summary>
+    /// Registers the Pipeline to enable imports
+    /// </summary>
+    /// <param name="pipelineRunDto">Pipeline Run Data</param>
+    /// <response code="200">Pipeline run registered successfully</response>
+    /// <response code="409">Pipeline is already registered</response>
     [HttpPost("RegisterPipelineRun")]
     [ServiceFilter(typeof(RemoteIpCheckActionFilter))]
     [Authorize(Policy = Policies.UsedApiKey)]
+    [ProducesErrorResponseType(typeof(string))]
     public async Task<IActionResult> PostRegisterPipelineRunAsync([FromBody] PipelineRunDto pipelineRunDto)
     {
         if (await _context.PipelineRuns.AnyAsync(p => p.PipelineId == pipelineRunDto.PipelineId))
@@ -65,9 +72,18 @@ public class SarifController : ControllerBase
         return Ok();
     }
 
+    /// <summary>
+    /// Imports the rules and results from the given SARIF-Report
+    /// </summary>
+    /// <param name="log">SARIF-Report</param>
+    /// <param name="pipelineId">(GitLab Global) Pipeline-ID</param>
+    /// <response code="200">Import successful</response>
+    /// <response code="400">Bad Request (Invalid File, unsupported Tool, ...)</response>
     [HttpPost("RegisterReport")]
     [ServiceFilter(typeof(RemoteIpCheckActionFilter))]
     [Authorize(Policy = Policies.UsedApiKey)]
+    [Consumes(typeof(SarifLog), "application/sarif+json")]
+    [ProducesErrorResponseType(typeof(string))]
     public async Task<IActionResult> PostRegisterReportAsync([FromBody] SarifLog log, [FromQuery, Required] int pipelineId)
     {
         if (log.Runs == null || log.Runs.Count == 0)

@@ -1,0 +1,13 @@
+title = "Allowlist for False Positives"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "global allow list"
+
+paths = ['''TestFiles''', '''.*\/TestFiles\/.*''']
+
+stopwords = [
+    '''2dfdf010b4bceb0ba295abc760fd4c4cf7bf9ebdc4744f672efedf344e5e2af5'''
+]

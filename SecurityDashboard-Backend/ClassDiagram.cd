@@ -1,0 +1,159 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Class Name="SecurityDashboard_Backend.DomainModel.Finding">
+    <Position X="9.25" Y="2.5" Width="1.75" />
+    <TypeIdentifier>
+      <HashCode>BAACEACAAAQgAAASAAIAIAQAACAAAAABAAgAAgAAAgQ=</HashCode>
+      <FileName>DomainModel\Finding.cs</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Property Name="ToolRule" />
+      <Property Name="PipelineRun" />
+      <Property Name="Tool" />
+    </ShowAsAssociation>
+  </Class>
+  <Class Name="SecurityDashboard_Backend.DomainModel.FluidAttacksFinding">
+    <Position X="3" Y="6.75" Width="1.75" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAFAAAAAAAADAAAAAAAAAAAAAAIAAAAAAAA=</HashCode>
+      <FileName>DomainModel\FluidAttacksFinding.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SecurityDashboard_Backend.DomainModel.GitLeaksFinding">
+    <Position X="10" Y="6.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAACAAAAAAgAgAAAAAAAAAIAAAAAAAAAAQAAA=</HashCode>
+      <FileName>DomainModel\GitLeaksFinding.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SecurityDashboard_Backend.DomainModel.OwaspDependencyCheckFinding">
+    <Position X="12.25" Y="6.75" Width="2.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>DomainModel\OwaspDependencyCheckFinding.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SecurityDashboard_Backend.DomainModel.OwaspZapFinding">
+    <Position X="5.5" Y="6.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAIAAAAQAAAAAAAAAAAA=</HashCode>
+      <FileName>DomainModel\OwaspZapFinding.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SecurityDashboard_Backend.DomainModel.PipelineRun">
+    <Position X="12.25" Y="3.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAACAAIAAAAAAAAABCgIAAAAAAAAAAgAAAAEAAAAAAA=</HashCode>
+      <FileName>DomainModel\PipelineRun.cs</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Property Name="Repository" />
+    </ShowAsAssociation>
+    <ShowAsCollectionAssociation>
+      <Property Name="Findings" />
+    </ShowAsCollectionAssociation>
+  </Class>
+  <Class Name="SecurityDashboard_Backend.DomainModel.Repository">
+    <Position X="15.25" Y="3" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>BAACAAAAAAAAAAAAAAAAAAQAAAAAAAAACAAAAAAAAAA=</HashCode>
+      <FileName>DomainModel\Repository.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SecurityDashboard_Backend.DomainModel.SemgrepFinding">
+    <Position X="7.75" Y="6.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>DomainModel\SemgrepFinding.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SecurityDashboard_Backend.DomainModel.ToolRule">
+    <Position X="6.25" Y="3" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAACAACAAAgIAAAAAAAAAAQAABAAAAAAgAAEAAAAAgA=</HashCode>
+      <FileName>DomainModel\ToolRule.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SecurityDashboard_Backend.DomainModel.TrivyFinding">
+    <Position X="15.5" Y="6.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>DomainModel\TrivyFinding.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SecurityDashboard_Backend.SecDashboardContext">
+    <Position X="18" Y="3.75" Width="2" />
+    <TypeIdentifier>
+      <HashCode>BAAAAAAAAAAAAAAAAAAAAAQAEAAAAAAAAAAEAAAAAAA=</HashCode>
+      <FileName>SecDashboardContext.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SecurityDashboard_Backend.Services.SarifImportService" BaseTypeListCollapsed="true">
+    <Position X="18" Y="8.25" Width="2.75" />
+    <TypeIdentifier>
+      <HashCode>AAAAIAAEAAAFDEgCAAAAAQAAIAAABgAAEAAAAAAAAAA=</HashCode>
+      <FileName>Services\SarifImportService.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.1" Collapsed="true" />
+  </Class>
+  <Class Name="SecurityDashboard_Backend.Controllers.SarifController">
+    <Position X="14.75" Y="10" Width="2.25" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAABABAAAAACAAAIAAAAACAAAAAAAAAAAA=</HashCode>
+      <FileName>Controllers\SarifController.cs</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Field Name="_importService" />
+    </ShowAsAssociation>
+  </Class>
+  <Class Name="SecurityDashboard_Backend.Authentication.ApiKeyConfiguration">
+    <Position X="10.5" Y="12.25" Width="1.75" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Authentication\ApiKeyConfiguration.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SecurityDashboard_Backend.Authentication.ApiKeyProvider">
+    <Position X="7.5" Y="12" Width="1.75" />
+    <TypeIdentifier>
+      <HashCode>AAAQAAAAABAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Authentication\ApiKeyProvider.cs</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Field Name="_apiKeyConfiguration" />
+    </ShowAsAssociation>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="SecurityDashboard_Backend.Models.PipelineRunDto">
+    <Position X="0.5" Y="11.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAIAAAAAAAAAACgIAAAAAAAAAAgAAAAAAAAAAAA=</HashCode>
+      <FileName>Models\PipelineRunDto.cs</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Property Name="Repository" />
+    </ShowAsAssociation>
+  </Class>
+  <Class Name="SecurityDashboard_Backend.Models.RepositoryDto">
+    <Position X="3.5" Y="11.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAACAAAAAAAAAA=</HashCode>
+      <FileName>Models\RepositoryDto.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Interface Name="SecurityDashboard_Backend.Services.ISarifImportService">
+    <Position X="14.5" Y="13.25" Width="1.75" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Services\ISarifImportService.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Enum Name="SecurityDashboard_Backend.DomainModel.SarifTool">
+    <Position X="12" Y="0.5" Width="2" />
+    <TypeIdentifier>
+      <HashCode>AAQAAIAAAAAAAAAAAAAAAAAAAAAAIAAIAACAAAAABAA=</HashCode>
+      <FileName>DomainModel\Finding.cs</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Font Name="Segoe UI" Size="9" />
+</ClassDiagram>
