@@ -39,7 +39,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Folder Include="Authentication\AuthorizationHandlers\" />
 		<Folder Include="Controllers\" />
 		<Folder Include="TestFiles\" />
 	</ItemGroup>

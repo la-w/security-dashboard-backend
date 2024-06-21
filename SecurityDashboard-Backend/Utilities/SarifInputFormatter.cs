@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.CodeAnalysis.Sarif;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
 namespace SecurityDashboard_Backend.Utilities;
@@ -16,6 +17,7 @@ public class SarifInputFormatter : TextInputFormatter
         SupportedEncodings.Add(Encoding.Unicode);
     }
 
+    [ExcludeFromCodeCoverage(Justification = "Just a condition check")]
     protected override bool CanReadType(Type type)
     {
         // Allow any string or SarifLog (if parsing was already tried) to be read.

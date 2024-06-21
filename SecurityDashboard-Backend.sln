@@ -5,11 +5,12 @@ VisualStudioVersion = 17.9.34728.123
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SecurityDashboard-Backend", "SecurityDashboard-Backend\SecurityDashboard-Backend.csproj", "{F3D4C70B-DE88-46FC-AFFE-8DC01B47CABD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SecurityDashboard-Backend.Tests", "SecurityDashboard-Backend.Tests\SecurityDashboard-Backend.Tests.csproj", "{05DCEB41-3169-4944-A8F5-6C25A5944386}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SecurityDashboard-Backend.Tests", "SecurityDashboard-Backend.Tests\SecurityDashboard-Backend.Tests.csproj", "{05DCEB41-3169-4944-A8F5-6C25A5944386}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{B0EBF407-01CD-48A6-83DC-9BB7D11259B6}"
 	ProjectSection(SolutionItems) = preProject
 		.gitlab-ci.yml = .gitlab-ci.yml
+		.gitleaks.toml = .gitleaks.toml
 	EndProjectSection
 EndProject
 Global

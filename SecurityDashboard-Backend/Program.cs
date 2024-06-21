@@ -1,10 +1,13 @@
+using System.Reflection;
 using AspNetCore.Authentication.ApiKey;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using SecurityDashboard_Backend;
 using SecurityDashboard_Backend.Authentication;
-using SecurityDashboard_Backend.Authentication.AuthorizationHandlers;
 using SecurityDashboard_Backend.Services;
 using SecurityDashboard_Backend.Utilities;
 using Serilog;
@@ -26,16 +29,39 @@ try
     builder.Services.AddAuthentication(ApiKeyDefaults.AuthenticationScheme)
         .AddApiKeyInAuthorizationHeader<ApiKeyProvider>(options =>
         {
-            options.KeyName = "X-API-KEY";
+            options.KeyName = "ApiKey";
             options.Realm = "Security Dashboard API";
+        });
+    builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        .AddJwtBearer(options =>
+        {
+            var oauthConfig = builder.Configuration.GetRequiredSection("OAuth").Get<OAuthConfig>();
+
+            options.MetadataAddress = oauthConfig.MetadataAddress;
+            options.RequireHttpsMetadata = true;
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                ValidateLifetime = true,
+                ValidateIssuer = true,
+                ValidateAudience = true,
+
+                ValidIssuer = oauthConfig.Issuer,
+                ValidAudience = oauthConfig.ClientId
+            };
         });
 
     builder.Services.AddAuthorization(options =>
     {
-        options.AddPolicy(Policies.UsedApiKey, policy => policy.AddRequirements(new UsedApiKeyRequirement()));
+        options.AddPolicy(Policies.UsedApiKey, policy =>
+        {
+            policy.AddAuthenticationSchemes(ApiKeyDefaults.AuthenticationScheme)
+                .RequireAuthenticatedUser();
+        });
+        options.AddPolicy(Policies.OAuthUser,
+            policy => policy.AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme)
+                .RequireAuthenticatedUser());
     });
-
-    builder.Services.AddSingleton<IAuthorizationHandler, UsedApiKeyAuthorizationHandler>();
 
     // Add Serilog
     builder.Host.UseSerilog((context, serviceProvider, config) =>
@@ -52,6 +78,29 @@ try
     // Add Remote-IP filter
     builder.Services.AddRemoteIpCheckActionFilter(builder.Configuration.GetSection("RemoteIpWhitelist").Get<string[]>());
 
+    // Add CORS
+    var allowedOriginsConfig = builder.Configuration.GetSection("AllowedOrigins");
+    var allowedOrigins = allowedOriginsConfig.GetChildren()
+        .Select(x => x.Value)
+        .Where(x => x != null)
+        .Cast<string>()
+        .ToArray();
+
+
+    builder.Services.AddCors(options =>
+    {
+        options.AddPolicy("AllowSpecificOrigin",
+            policyBuilder =>
+            {
+                if (allowedOrigins.Length > 0)
+                    policyBuilder.WithOrigins(allowedOrigins);
+                else
+                    policyBuilder.AllowAnyOrigin();
+
+                policyBuilder.AllowAnyMethod().AllowAnyHeader().AllowCredentials();
+            });
+    });
+
     // Register Controllers and add SARIF Input/Output Formatters as highest priority
     builder.Services.AddControllers(options =>
     {
@@ -60,7 +109,34 @@ try
     });
     // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
     builder.Services.AddEndpointsApiExplorer();
-    builder.Services.AddSwaggerGen();
+    builder.Services.AddSwaggerGen(options =>
+    {
+        options.SwaggerDoc("v1", new()
+        {
+            Title = "TBD_PWL Dashboard Backend v1",
+            Description = "API for the Security Dashboard Backend",
+            Version = "1.0.0"
+        });
+        options.AddSecurityDefinition("apiKey", new()
+        {
+            Type = SecuritySchemeType.ApiKey,
+            Scheme = "ApiKey",
+            In = ParameterLocation.Header,
+            Name = "Authorization",
+            Description = "API-Key Authentication\n\n*Please prefix your API-Key with 'ApiKey ' (including the space) for it to work in SwaggerUI.*"
+        });
+        options.AddSecurityDefinition("oAuth", new()
+        {
+            Type = SecuritySchemeType.OpenIdConnect,
+            OpenIdConnectUrl = new Uri(builder.Configuration.GetSection("OAuth").Get<OAuthConfig>().MetadataAddress),
+            Description = "OAuth2 Authentication"
+        });
+
+        options.OperationFilter<SecurityRequirementsOperationFilter>();
+
+        options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, $"{Assembly.GetExecutingAssembly().GetName().Name}.xml"));
+    });
+
 
     // Configure forwarded headers
     builder.Services.Configure<ForwardedHeadersOptions>(options =>
@@ -81,6 +157,9 @@ try
 
     // Map remote IPs from proxies
     app.UseForwardedHeaders();
+
+    // Use CORS
+    app.UseCors("AllowSpecificOrigin");
 
     // Configure the HTTP request pipeline.
     if (app.Environment.IsDevelopment())
