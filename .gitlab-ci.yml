@@ -170,7 +170,7 @@ deploy-dev:
     - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker container rm -f dashboard-backend_dev || true"
     - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker run -d --env ASPNETCORE_ENVIRONMENT=DEVELOPMENT --env ApiKey__ApiKey=IAmASecretApiKey --hostname backend_dev --network nginx_net --name dashboard-backend_dev --restart unless-stopped $IMAGE_TAG"
   environment:
-    name: production
+    name: dev
     url: https://backend_dev.tbdpwl.dynv6.net
   only:
     - dev
