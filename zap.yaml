@@ -1,7 +1,7 @@
 env:
   contexts:
     - name: Security-Dashboard-Backend
-      url: https://backend-dev.tbdpwl.dynv6.net
+      urls: [https://backend-dev.tbdpwl.dynv6.net]
       excludePaths:
         - ".*/swagger.*"
   parameters:
