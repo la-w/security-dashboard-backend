@@ -1,8 +1,7 @@
-
 env:
   contexts:
     - name: Security-Dashboard-Backend
-      url: {REVIEW_URL}
+      url: https://backend_dev.tbdpwl.dynv6.net
       excludePaths:
         - ".*/swagger.*"
   parameters:
@@ -11,7 +10,7 @@ env:
 jobs:
   - type: openapi
     parameters:
-      apiUrl: "{REVIEW_URL}/swagger/v1/swagger.json"
+      apiUrl: "https://backend_dev.tbdpwl.dynv6.net/swagger/v1/swagger.json"
       context: Security-Dashboard-Backend
   - type: passiveScan-config
     parameters:
