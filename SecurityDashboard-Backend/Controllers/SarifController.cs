@@ -19,15 +19,12 @@ public class SarifController : ControllerBase
     private readonly SecDashboardContext _context;
 
     private readonly ISarifImportService _importService;
-    private readonly IFindingsDeduplicationService _deduplicationService;
 
-    public SarifController(ILogger<SarifController> logger, SecDashboardContext context, ISarifImportService importService,
-        IFindingsDeduplicationService deduplicationService)
+    public SarifController(ILogger<SarifController> logger, SecDashboardContext context, ISarifImportService importService)
     {
         _logger = logger;
         _context = context;
         _importService = importService;
-        _deduplicationService = deduplicationService;
     }
 
     /// <summary>
@@ -117,32 +114,6 @@ public class SarifController : ControllerBase
         catch (ArgumentException ex)
         {
             return BadRequest(ex.Message);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
-        }
-
-        return Ok();
-    }
-
-    /// <summary>
-    /// Runs the deduplication for the given pipeline
-    /// </summary>
-    /// <param name="pipelineId">(GitLab Global) Pipeline Id</param>
-    /// <response code="200">Pipeline run registered successfully</response>
-    [HttpPost("RunDeduplication")]
-    [ServiceFilter(typeof(RemoteIpCheckActionFilter))]
-    [Authorize(Policy = Policies.UsedApiKey)]
-    [ProducesErrorResponseType(typeof(string))]
-    public async Task<IActionResult> PostRunDeduplication([FromQuery] long pipelineId)
-    {
-        if (!await _context.PipelineRuns.AsNoTracking().AnyAsync(p => p.PipelineId == pipelineId))
-            return BadRequest("Pipeline run not found");
-
-        try
-        {
-            await _deduplicationService.DeduplicateFindingsAsync(pipelineId);
         }
         catch (Exception ex)
         {

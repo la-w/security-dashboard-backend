@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Net;
+using System.Text;
 using Microsoft.CodeAnalysis.Sarif;
 using SecurityDashboard_Backend.DomainModel;
 using WebRequest = Microsoft.CodeAnalysis.Sarif.WebRequest;

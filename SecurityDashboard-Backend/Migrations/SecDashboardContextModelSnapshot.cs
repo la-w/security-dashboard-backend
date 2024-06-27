@@ -17,109 +17,12 @@ namespace SecurityDashboard_Backend.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.6");
 
-            modelBuilder.Entity("SecurityDashboard_Backend.DomainModel.PipelineFinding", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("CweIds")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("DetectionType")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("IsFalsePositive")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Level")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Location")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<long>("PipelineRunId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("SecurityAdvisories")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("ToolRuleId")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PipelineRunId");
-
-                    b.HasIndex("ToolRuleId");
-
-                    b.ToTable("PipelineFindings");
-                });
-
-            modelBuilder.Entity("SecurityDashboard_Backend.DomainModel.PipelineRun", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Branch")
-                        .IsRequired()
-                        .HasMaxLength(300)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CommitHash")
-                        .IsRequired()
-                        .HasMaxLength(40)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<long>("PipelineId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("RepositoryId")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("RepositoryId");
-
-                    b.ToTable("PipelineRuns");
-                });
-
-            modelBuilder.Entity("SecurityDashboard_Backend.DomainModel.Repository", b =>
+            modelBuilder.Entity("SecurityDashboard_Backend.DomainModel.Finding", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Url")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Repositories");
-                });
-
-            modelBuilder.Entity("SecurityDashboard_Backend.DomainModel.ToolFinding", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
                     b.Property<string>("CweIds")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -128,9 +31,6 @@ namespace SecurityDashboard_Backend.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("DetectionType")
-                        .HasColumnType("INTEGER");
-
                     b.Property<int>("Level")
                         .HasColumnType("INTEGER");
 
@@ -138,11 +38,12 @@ namespace SecurityDashboard_Backend.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<long?>("PipelineFindingId")
+                    b.Property<int>("PipelineRunId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<long>("PipelineRunId")
-                        .HasColumnType("INTEGER");
+                    b.Property<string>("RuleId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("SecurityAdvisories")
                         .IsRequired()
@@ -172,17 +73,66 @@ namespace SecurityDashboard_Backend.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PipelineFindingId");
-
                     b.HasIndex("PipelineRunId");
 
                     b.HasIndex("ToolRuleId");
 
-                    b.ToTable("ToolFindings");
+                    b.ToTable("Findings");
 
                     b.HasDiscriminator<int>("Tool");
 
                     b.UseTphMappingStrategy();
+                });
+
+            modelBuilder.Entity("SecurityDashboard_Backend.DomainModel.PipelineRun", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Branch")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CommitHash")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("PipelineId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("RepositoryId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RepositoryId");
+
+                    b.ToTable("PipelineRuns");
+                });
+
+            modelBuilder.Entity("SecurityDashboard_Backend.DomainModel.Repository", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Repositories");
                 });
 
             modelBuilder.Entity("SecurityDashboard_Backend.DomainModel.ToolRule", b =>
@@ -230,7 +180,7 @@ namespace SecurityDashboard_Backend.Migrations
 
             modelBuilder.Entity("SecurityDashboard_Backend.DomainModel.FluidAttacksFinding", b =>
                 {
-                    b.HasBaseType("SecurityDashboard_Backend.DomainModel.ToolFinding");
+                    b.HasBaseType("SecurityDashboard_Backend.DomainModel.Finding");
 
                     b.Property<string>("Cvss31Vector")
                         .HasColumnType("TEXT");
@@ -241,9 +191,6 @@ namespace SecurityDashboard_Backend.Migrations
                     b.Property<string>("Kind")
                         .IsRequired()
                         .HasColumnType("TEXT");
-
-                    b.Property<int?>("Line")
-                        .HasColumnType("INTEGER");
 
                     b.Property<string>("SourceMethod")
                         .IsRequired()
@@ -258,7 +205,7 @@ namespace SecurityDashboard_Backend.Migrations
 
             modelBuilder.Entity("SecurityDashboard_Backend.DomainModel.GitLeaksFinding", b =>
                 {
-                    b.HasBaseType("SecurityDashboard_Backend.DomainModel.ToolFinding");
+                    b.HasBaseType("SecurityDashboard_Backend.DomainModel.Finding");
 
                     b.Property<string>("Author")
                         .IsRequired()
@@ -279,19 +226,19 @@ namespace SecurityDashboard_Backend.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.HasDiscriminator().HasValue(2);
+                    b.HasDiscriminator().HasValue(1);
                 });
 
             modelBuilder.Entity("SecurityDashboard_Backend.DomainModel.OwaspDependencyCheckFinding", b =>
                 {
-                    b.HasBaseType("SecurityDashboard_Backend.DomainModel.ToolFinding");
+                    b.HasBaseType("SecurityDashboard_Backend.DomainModel.Finding");
 
-                    b.HasDiscriminator().HasValue(3);
+                    b.HasDiscriminator().HasValue(2);
                 });
 
             modelBuilder.Entity("SecurityDashboard_Backend.DomainModel.OwaspZapFinding", b =>
                 {
-                    b.HasBaseType("SecurityDashboard_Backend.DomainModel.ToolFinding");
+                    b.HasBaseType("SecurityDashboard_Backend.DomainModel.Finding");
 
                     b.Property<string>("Attack")
                         .IsRequired()
@@ -305,27 +252,27 @@ namespace SecurityDashboard_Backend.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.HasDiscriminator().HasValue(1);
+                    b.HasDiscriminator().HasValue(5);
                 });
 
             modelBuilder.Entity("SecurityDashboard_Backend.DomainModel.SemgrepFinding", b =>
                 {
-                    b.HasBaseType("SecurityDashboard_Backend.DomainModel.ToolFinding");
+                    b.HasBaseType("SecurityDashboard_Backend.DomainModel.Finding");
 
-                    b.HasDiscriminator().HasValue(5);
+                    b.HasDiscriminator().HasValue(3);
                 });
 
             modelBuilder.Entity("SecurityDashboard_Backend.DomainModel.TrivyFinding", b =>
                 {
-                    b.HasBaseType("SecurityDashboard_Backend.DomainModel.ToolFinding");
+                    b.HasBaseType("SecurityDashboard_Backend.DomainModel.Finding");
 
                     b.HasDiscriminator().HasValue(4);
                 });
 
-            modelBuilder.Entity("SecurityDashboard_Backend.DomainModel.PipelineFinding", b =>
+            modelBuilder.Entity("SecurityDashboard_Backend.DomainModel.Finding", b =>
                 {
                     b.HasOne("SecurityDashboard_Backend.DomainModel.PipelineRun", "PipelineRun")
-                        .WithMany("PipelineFindings")
+                        .WithMany("Findings")
                         .HasForeignKey("PipelineRunId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -352,51 +299,14 @@ namespace SecurityDashboard_Backend.Migrations
                     b.Navigation("Repository");
                 });
 
-            modelBuilder.Entity("SecurityDashboard_Backend.DomainModel.ToolFinding", b =>
-                {
-                    b.HasOne("SecurityDashboard_Backend.DomainModel.PipelineFinding", "PipelineFinding")
-                        .WithMany("Findings")
-                        .HasForeignKey("PipelineFindingId");
-
-                    b.HasOne("SecurityDashboard_Backend.DomainModel.PipelineRun", "PipelineRun")
-                        .WithMany("ToolFindings")
-                        .HasForeignKey("PipelineRunId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("SecurityDashboard_Backend.DomainModel.ToolRule", "ToolRule")
-                        .WithMany("Findings")
-                        .HasForeignKey("ToolRuleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("PipelineFinding");
-
-                    b.Navigation("PipelineRun");
-
-                    b.Navigation("ToolRule");
-                });
-
-            modelBuilder.Entity("SecurityDashboard_Backend.DomainModel.PipelineFinding", b =>
-                {
-                    b.Navigation("Findings");
-                });
-
             modelBuilder.Entity("SecurityDashboard_Backend.DomainModel.PipelineRun", b =>
                 {
-                    b.Navigation("PipelineFindings");
-
-                    b.Navigation("ToolFindings");
+                    b.Navigation("Findings");
                 });
 
             modelBuilder.Entity("SecurityDashboard_Backend.DomainModel.Repository", b =>
                 {
                     b.Navigation("PipelineRuns");
-                });
-
-            modelBuilder.Entity("SecurityDashboard_Backend.DomainModel.ToolRule", b =>
-                {
-                    b.Navigation("Findings");
                 });
 #pragma warning restore 612, 618
         }

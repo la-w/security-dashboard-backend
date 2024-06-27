@@ -50,9 +50,9 @@ namespace SecurityDashboard_Backend.Migrations
                 name: "PipelineRuns",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "INTEGER", nullable: false)
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
-                    PipelineId = table.Column<long>(type: "INTEGER", nullable: false),
+                    PipelineId = table.Column<int>(type: "INTEGER", nullable: false),
                     CreatedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
                     Branch = table.Column<string>(type: "TEXT", maxLength: 300, nullable: false),
                     CommitHash = table.Column<string>(type: "TEXT", maxLength: 40, nullable: false),
@@ -70,56 +70,27 @@ namespace SecurityDashboard_Backend.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "PipelineFindings",
+                name: "Findings",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "INTEGER", nullable: false)
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
-                    IsFalsePositive = table.Column<bool>(type: "INTEGER", nullable: false),
-                    PipelineRunId = table.Column<long>(type: "INTEGER", nullable: false),
-                    ToolRuleId = table.Column<int>(type: "INTEGER", nullable: false),
                     Location = table.Column<string>(type: "TEXT", nullable: false),
-                    Description = table.Column<string>(type: "TEXT", nullable: false),
-                    Level = table.Column<int>(type: "INTEGER", nullable: false),
-                    DetectionType = table.Column<int>(type: "INTEGER", nullable: false),
-                    CweIds = table.Column<string>(type: "TEXT", nullable: false),
-                    SecurityAdvisories = table.Column<string>(type: "TEXT", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_PipelineFindings", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_PipelineFindings_PipelineRuns_PipelineRunId",
-                        column: x => x.PipelineRunId,
-                        principalTable: "PipelineRuns",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_PipelineFindings_ToolRules_ToolRuleId",
-                        column: x => x.ToolRuleId,
-                        principalTable: "ToolRules",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "ToolFindings",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
                     Tool = table.Column<int>(type: "INTEGER", nullable: false),
+                    RuleId = table.Column<string>(type: "TEXT", nullable: false),
+                    Description = table.Column<string>(type: "TEXT", nullable: false),
                     Snippet = table.Column<string>(type: "TEXT", nullable: false),
                     SnippetStartLine = table.Column<int>(type: "INTEGER", nullable: false),
                     SnippetStartColumn = table.Column<int>(type: "INTEGER", nullable: true),
                     SnippetEndLine = table.Column<int>(type: "INTEGER", nullable: true),
                     SnippetEndColumn = table.Column<int>(type: "INTEGER", nullable: true),
-                    PipelineRunId = table.Column<long>(type: "INTEGER", nullable: false),
+                    Level = table.Column<int>(type: "INTEGER", nullable: false),
+                    CweIds = table.Column<string>(type: "TEXT", nullable: false),
+                    SecurityAdvisories = table.Column<string>(type: "TEXT", nullable: false),
+                    PipelineRunId = table.Column<int>(type: "INTEGER", nullable: false),
                     ToolRuleId = table.Column<int>(type: "INTEGER", nullable: false),
-                    PipelineFindingId = table.Column<long>(type: "INTEGER", nullable: true),
                     Cvss31Vector = table.Column<string>(type: "TEXT", nullable: true),
                     Cvss40Vector = table.Column<string>(type: "TEXT", nullable: true),
-                    Line = table.Column<int>(type: "INTEGER", nullable: true),
                     Kind = table.Column<string>(type: "TEXT", nullable: true),
                     Technique = table.Column<string>(type: "TEXT", nullable: true),
                     SourceMethod = table.Column<string>(type: "TEXT", nullable: true),
@@ -130,30 +101,19 @@ namespace SecurityDashboard_Backend.Migrations
                     CommitDate = table.Column<DateTime>(type: "TEXT", nullable: true),
                     Attack = table.Column<string>(type: "TEXT", nullable: true),
                     WebRequest = table.Column<string>(type: "TEXT", nullable: true),
-                    WebResponse = table.Column<string>(type: "TEXT", nullable: true),
-                    Location = table.Column<string>(type: "TEXT", nullable: false),
-                    Description = table.Column<string>(type: "TEXT", nullable: false),
-                    Level = table.Column<int>(type: "INTEGER", nullable: false),
-                    DetectionType = table.Column<int>(type: "INTEGER", nullable: false),
-                    CweIds = table.Column<string>(type: "TEXT", nullable: false),
-                    SecurityAdvisories = table.Column<string>(type: "TEXT", nullable: false)
+                    WebResponse = table.Column<string>(type: "TEXT", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ToolFindings", x => x.Id);
+                    table.PrimaryKey("PK_Findings", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_ToolFindings_PipelineFindings_PipelineFindingId",
-                        column: x => x.PipelineFindingId,
-                        principalTable: "PipelineFindings",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_ToolFindings_PipelineRuns_PipelineRunId",
+                        name: "FK_Findings_PipelineRuns_PipelineRunId",
                         column: x => x.PipelineRunId,
                         principalTable: "PipelineRuns",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_ToolFindings_ToolRules_ToolRuleId",
+                        name: "FK_Findings_ToolRules_ToolRuleId",
                         column: x => x.ToolRuleId,
                         principalTable: "ToolRules",
                         principalColumn: "Id",
@@ -161,34 +121,19 @@ namespace SecurityDashboard_Backend.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_PipelineFindings_PipelineRunId",
-                table: "PipelineFindings",
+                name: "IX_Findings_PipelineRunId",
+                table: "Findings",
                 column: "PipelineRunId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_PipelineFindings_ToolRuleId",
-                table: "PipelineFindings",
+                name: "IX_Findings_ToolRuleId",
+                table: "Findings",
                 column: "ToolRuleId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_PipelineRuns_RepositoryId",
                 table: "PipelineRuns",
                 column: "RepositoryId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_ToolFindings_PipelineFindingId",
-                table: "ToolFindings",
-                column: "PipelineFindingId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_ToolFindings_PipelineRunId",
-                table: "ToolFindings",
-                column: "PipelineRunId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_ToolFindings_ToolRuleId",
-                table: "ToolFindings",
-                column: "ToolRuleId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ToolRules_RuleId_Tool",
@@ -201,10 +146,7 @@ namespace SecurityDashboard_Backend.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "ToolFindings");
-
-            migrationBuilder.DropTable(
-                name: "PipelineFindings");
+                name: "Findings");
 
             migrationBuilder.DropTable(
                 name: "PipelineRuns");

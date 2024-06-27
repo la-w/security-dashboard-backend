@@ -7,7 +7,7 @@ language: EN
 
 dast:
   urls:
-    - https://backend-dev.tbdpwl.dynv6.net
+    - {REVIEW_URL}
   # Optional keys
   http_checks: true
   ssl_checks: true

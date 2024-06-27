@@ -1,6 +1,6 @@
 ﻿namespace SecurityDashboard_Backend.DomainModel;
 
-public class OwaspZapFinding : ToolFinding
+public class OwaspZapFinding : Finding
 {
     public string Attack { get; set; }
     public string WebRequest { get; set; }

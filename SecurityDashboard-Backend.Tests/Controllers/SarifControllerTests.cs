@@ -17,7 +17,6 @@ public class SarifControllerTests : DbTestBase
 {
     private SarifController _controller = null!; // Suppress warning, will be initialized in InitializeAsync
     private readonly ISarifImportService _mockedImportService = Substitute.For<ISarifImportService>();
-    private readonly IFindingsDeduplicationService _mockedDeduplicationService = Substitute.For<IFindingsDeduplicationService>();
 
     public SarifControllerTests(ITestOutputHelper testOutputHelper) : base(testOutputHelper)
     {
@@ -29,7 +28,7 @@ public class SarifControllerTests : DbTestBase
 
         var logger = TestOutputHelper.CreateLogger<SarifController>();
 
-        _controller = new SarifController(logger, Context, _mockedImportService, _mockedDeduplicationService);
+        _controller = new SarifController(logger, Context, _mockedImportService);
 
         _controller.ControllerContext.HttpContext = new DefaultHttpContext();
     }
@@ -237,72 +236,6 @@ public class SarifControllerTests : DbTestBase
 
         // Act
         var result = await _controller.PostRegisterReportAsync(sarifLog, 1);
-
-        // Assert
-        result.Should().NotBeNull()
-            .And.BeAssignableTo<IStatusCodeActionResult>()
-            .Which.StatusCode.Should().Be(StatusCodes.Status200OK);
-    }
-
-    [Fact]
-    public async Task PostRunDeduplicationAsync_WithUnknownPipelineId_ShouldReturnBadRequest()
-    {
-        // Arrange
-        _mockedDeduplicationService.DeduplicateFindingsAsync(default).ThrowsAsync(new ArgumentException());
-
-        // Act
-        var result = await _controller.PostRunDeduplication(1);
-
-        // Assert
-        result.Should().NotBeNull()
-            .And.BeAssignableTo<IStatusCodeActionResult>()
-            .Which.StatusCode.Should().Be(StatusCodes.Status400BadRequest);
-    }
-
-    [Fact]
-    public async Task PostRunDeduplicationAsync_WithUnhandledException_ShouldReturnInternalServerError()
-    {
-        // Arrange
-        var repository = new Repository { Name = "some-other-name", Url = "https://git.example.com/some-name" };
-        var pipelineRun = new PipelineRun
-        {
-            PipelineId = 1234,
-            Branch = "some-branch",
-            CommitHash = "0123456789abcdef0123456789abcdef01234567",
-            CreatedAt = DateTimeOffset.UtcNow,
-            Repository = repository
-        };
-        await Context.PipelineRuns.AddAsync(pipelineRun);
-        await Context.SaveChangesAsync();
-
-        _mockedDeduplicationService.DeduplicateFindingsAsync(1234).ThrowsAsyncForAnyArgs<NullReferenceException>();
-        // Act
-        var result = await _controller.PostRunDeduplication(1234);
-
-        // Assert
-        result.Should().NotBeNull()
-            .And.BeAssignableTo<IStatusCodeActionResult>()
-            .Which.StatusCode.Should().Be(StatusCodes.Status500InternalServerError);
-    }
-
-    [Fact]
-    public async Task PostRunDeduplicationAsync_WithValidPipelineId_ShouldReturnOk()
-    {
-        // Arrange
-        var repository = new Repository { Name = "some-other-name", Url = "https://git.example.com/some-name" };
-        var pipelineRun = new PipelineRun
-        {
-            PipelineId = 1234,
-            Branch = "some-branch",
-            CommitHash = "0123456789abcdef0123456789abcdef01234567",
-            CreatedAt = DateTimeOffset.UtcNow,
-            Repository = repository
-        };
-        await Context.PipelineRuns.AddAsync(pipelineRun);
-        await Context.SaveChangesAsync();
-
-        // Act
-        var result = await _controller.PostRunDeduplication(1234);
 
         // Assert
         result.Should().NotBeNull()
