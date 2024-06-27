@@ -31,7 +31,7 @@ RESPONSE_CODE=$(curl --location 'https://backend.tbdpwl.dynv6.net/api/Sarif/Regi
   --header 'Content-Type: application/json' \
   --header 'Authorization: ApiKey '"$BACKEND_API_KEY"'' \
   --data "$pipelineData")
-if [$RESPONSE_CODE = 200]
+if [ $RESPONSE_CODE = 200 ]
 then
   printf -- "%s\n\n" "Pipeline was successfully registered"
 else
@@ -67,7 +67,7 @@ RESPONSE_CODE=$(curl --location 'https://backend.tbdpwl.dynv6.net/api/Sarif/RunD
   --header 'Content-Type: application/json' \
   --header 'Authorization: ApiKey '"$BACKEND_API_KEY"'' \
   --data "$pipelineData")
-if [$RESPONSE_CODE = 200]
+if [ $RESPONSE_CODE = 200 ]
 then
   printf -- "%s\n\n" "Deduplication was successfully executed"
 else
@@ -83,7 +83,7 @@ RESPONSE_CODE=$(curl --location 'https://backend-dev.tbdpwl.dynv6.net/api/Sarif/
   --header 'Content-Type: application/json' \
   --header 'Authorization: ApiKey IAmASecretApiKey' \
   --data "$pipelineData")
-if [$RESPONSE_CODE = 200]
+if [ $RESPONSE_CODE = 200 ]
 then
   printf -- "%s\n\n" "Pipeline was successfully registered"
 else
@@ -118,9 +118,9 @@ RESPONSE_CODE=$(curl --location 'https://backend-dev.tbdpwl.dynv6.net/api/Sarif/
   --output /dev/null \
   --write-out '%{response_code}' \
   --header 'Content-Type: application/json' \
-  --header 'Authorization: ApiKey '"$BACKEND_API_KEY"'' \
+  --header 'Authorization: ApiKey IAmASecretApiKey' \
   --data "$pipelineData")
-if [$RESPONSE_CODE = 200]
+if [ $RESPONSE_CODE = 200 ]
 then
   printf -- "%s\n\n" "Deduplication was successfully executed"
 else
