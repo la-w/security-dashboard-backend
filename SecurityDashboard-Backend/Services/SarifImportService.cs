@@ -21,7 +21,7 @@ public class SarifImportService : ISarifImportService
         _context = context;
     }
 
-    public async Task ImportAsync(SarifLog sarifLog, int pipelineId)
+    public async Task ImportAsync(SarifLog sarifLog, long pipelineId)
     {
         if (sarifLog.Runs == null || sarifLog.Runs.Count == 0)
             throw new ArgumentException("SarifLog must contain at least one run", nameof(sarifLog));
@@ -137,13 +137,40 @@ public class SarifImportService : ISarifImportService
         toolRule.CvssVector = cvssVector;
     }
 
-    private async Task ImportResults(SarifLog sarifLog, SarifTool sarifTool, int pipelineRunId)
+    private async Task ImportResults(SarifLog sarifLog, SarifTool sarifTool, long pipelineRunId)
     {
-        if (await _context.Findings.AsNoTracking().AnyAsync(f => f.Tool == sarifTool && f.PipelineRunId == pipelineRunId))
+        if (sarifTool != SarifTool.FluidAttacks)
         {
-            _logger.LogWarning("Findings for Tool {SarifTool} in PipelineRun #[{PipelineRunId}] were already imported.", sarifTool,
-                pipelineRunId);
-            return;
+            if (await _context.ToolFindings.AsNoTracking().AnyAsync(f => f.Tool == sarifTool && f.PipelineRunId == pipelineRunId))
+            {
+                _logger.LogWarning("Findings for Tool {SarifTool} in PipelineRun #[{PipelineRunId}] were already imported.", sarifTool,
+                    pipelineRunId);
+                return;
+            }
+        }
+        else
+        {
+            var importedFluidAttacksTypes = await _context.ToolFindings.AsNoTracking()
+                .Where(f => f.Tool == sarifTool && f.PipelineRunId == pipelineRunId)
+                .Select(f => f.DetectionType)
+                .Distinct()
+                .ToListAsync();
+
+            var resultKinds = sarifLog.Results()
+                .Select(r => r.TryGetProperty("kind", out var kind) ? kind : null)
+                .Where(k => k != null)
+                .Distinct()
+                .ToList();
+
+            // If SAST was imported but new results are only DAST
+            if (!((importedFluidAttacksTypes.TrueForAll(t => t != DetectionType.DAST) && resultKinds.TrueForAll(k => k == "DAST"))
+                  // or DAST was imported but new results are only SAST,SCA,SECRET
+                  || (importedFluidAttacksTypes.TrueForAll(t => t == DetectionType.DAST) && resultKinds.TrueForAll(k => k != "DAST"))))
+            {
+                _logger.LogWarning("Findings for Tool {SarifTool} in PipelineRun #[{PipelineRunId}] were already imported.", sarifTool,
+                    pipelineRunId);
+                return;
+            }
         }
 
         var totalResults = 0;
@@ -165,7 +192,7 @@ public class SarifImportService : ISarifImportService
                     continue;
                 }
 
-                Finding finding = sarifTool switch
+                ToolFinding toolFinding = sarifTool switch
                 {
                     SarifTool.FluidAttacks => ParseFluidAttacksResult(result, toolRule.DefaultLevel),
                     SarifTool.GitLeaks => ParseGitLeaksResult(result, toolRule.DefaultLevel),
@@ -176,13 +203,13 @@ public class SarifImportService : ISarifImportService
                     _ => throw new ArgumentException("Unknown / Not implemented SarifTool", nameof(sarifTool))
                 };
 
-                finding.ToolRuleId = toolRule.Id;
-                finding.Tool = sarifTool;
-                finding.PipelineRunId = pipelineRunId;
-                await _context.Findings.AddAsync(finding);
+                toolFinding.ToolRuleId = toolRule.Id;
+                toolFinding.Tool = sarifTool;
+                toolFinding.PipelineRunId = pipelineRunId;
+                await _context.ToolFindings.AddAsync(toolFinding);
 
                 _logger.LogDebug("Parsed finding from {SarifTool}:\nPath: {Path}; Line: {Line}\n{RuleId}: {Description}",
-                    sarifTool, finding.Location, finding.SnippetStartLine, finding.RuleId, finding.Description);
+                    sarifTool, toolFinding.Location, toolFinding.SnippetStartLine, result.RuleId, toolFinding.Description);
 
                 importedFindings++;
             }
@@ -199,16 +226,15 @@ public class SarifImportService : ISarifImportService
             importedFindings, totalResults, totalResults - importedFindings);
     }
 
-    private void ParseSharedResultData(Result result, FailureLevel? ruleDefaultLevel, Finding finding, bool mayHaveNoSnippet = false)
+    private void ParseSharedResultData(Result result, FailureLevel? ruleDefaultLevel, ToolFinding toolFinding, bool mayHaveNoSnippet = false)
     {
         if (result.Level == _resultDefaultLevel)
-            finding.Level = ruleDefaultLevel ?? finding.Level;
+            toolFinding.Level = ruleDefaultLevel ?? result.Level;
         else
-            finding.Level = result.Level;
+            toolFinding.Level = result.Level;
 
-        finding.Description = result.Message?.Text ??
-                              result.Message?.Markdown ?? throw new ArgumentException("Result has no message.", nameof(result));
-        finding.RuleId = result.RuleId ?? throw new ArgumentException("Result has no rule ID.", nameof(result));
+        toolFinding.Description = result.Message?.Text ??
+                                  result.Message?.Markdown ?? throw new ArgumentException("Result has no message.", nameof(result));
 
         var location = result.Locations?.FirstOrDefault()?.PhysicalLocation;
 
@@ -220,7 +246,7 @@ public class SarifImportService : ISarifImportService
         if (locationUri == null)
             throw new ArgumentException("Result has no location uri.", nameof(result));
 
-        finding.Location = locationUri.OriginalString;
+        toolFinding.Location = locationUri.OriginalString;
 
         Region region;
 
@@ -248,12 +274,12 @@ public class SarifImportService : ISarifImportService
         else
             throw new ArgumentException("Result has no region.", nameof(result));
 
-        finding.Snippet = region.Snippet?.Text ??
-                          region.Snippet?.Rendered?.Text ?? throw new ArgumentException("Result has no snippet.", nameof(result));
-        finding.SnippetStartLine = region.StartLine;
-        finding.SnippetStartColumn = region.StartColumn;
-        finding.SnippetEndLine = region.EndLine;
-        finding.SnippetEndColumn = region.EndColumn;
+        toolFinding.Snippet = region.Snippet?.Text ??
+                              region.Snippet?.Rendered?.Text ?? throw new ArgumentException("Result has no snippet.", nameof(result));
+        toolFinding.SnippetStartLine = region.StartLine;
+        toolFinding.SnippetStartColumn = region.StartColumn;
+        toolFinding.SnippetEndLine = region.EndLine;
+        toolFinding.SnippetEndColumn = region.EndColumn;
     }
 
     private FluidAttacksFinding ParseFluidAttacksResult(Result result, FailureLevel? ruleDefaultLevel)
@@ -280,6 +306,19 @@ public class SarifImportService : ISarifImportService
         finding.Technique = result.GetProperty("technique");
         finding.SourceMethod = result.GetProperty("source_method");
 
+        finding.DetectionType = finding.Kind switch
+        {
+            "SAST" => DetectionType.SAST,
+            "DAST" => DetectionType.DAST,
+            "SCA" => DetectionType.SCA,
+            _ => DetectionType.SAST
+        };
+
+        var contextRegion = result.Locations.First().PhysicalLocation?.ContextRegion;
+
+        if (contextRegion != null && contextRegion.TryGetProperty<int>("line", out var line))
+            finding.Line = line;
+
         return finding;
     }
 
@@ -289,8 +328,10 @@ public class SarifImportService : ISarifImportService
 
         ParseSharedResultData(result, ruleDefaultLevel, finding);
 
+        finding.DetectionType = DetectionType.SECRET;
+
         var partialFingerprints = result.PartialFingerprints;
-        
+
         if (partialFingerprints == null)
             throw new ArgumentException("Result has no partialFingerprints.", nameof(result));
 
@@ -298,22 +339,22 @@ public class SarifImportService : ISarifImportService
             finding.CommitHash = commitSha;
         else
             throw new ArgumentException("Result has no CommitHash.", nameof(result));
-        
+
         if (partialFingerprints.TryGetValue("email", out var email) && email != null)
             finding.Email = email;
         else
             throw new ArgumentException("Result has no Email.", nameof(result));
-                
+
         if (partialFingerprints.TryGetValue("author", out var author) && author != null)
             finding.Author = author;
         else
             throw new ArgumentException("Result has no Author.", nameof(result));
-        
+
         if (partialFingerprints.TryGetValue("date", out var date) && date != null)
             finding.CommitDate = DateTime.Parse(date, null, DateTimeStyles.RoundtripKind);
         else
             throw new ArgumentException("Result has no CommitDate.", nameof(result));
-                
+
         if (partialFingerprints.TryGetValue("commitMessage", out var commitMessage) && commitMessage != null)
             finding.CommitMessage = commitMessage;
         else
@@ -328,8 +369,10 @@ public class SarifImportService : ISarifImportService
 
         ParseSharedResultData(result, ruleDefaultLevel, finding, true);
 
-        if (finding.RuleId.StartsWith("CVE") || finding.RuleId.StartsWith("GHSA") || finding.RuleId.StartsWith("NSWG"))
-            finding.SecurityAdvisories = [finding.RuleId];
+        finding.DetectionType = DetectionType.SCA;
+
+        if (result.RuleId.StartsWith("CVE") || result.RuleId.StartsWith("GHSA") || result.RuleId.StartsWith("NSWG"))
+            finding.SecurityAdvisories = [result.RuleId];
 
         return finding;
     }
@@ -339,6 +382,8 @@ public class SarifImportService : ISarifImportService
         var finding = new SemgrepFinding();
 
         ParseSharedResultData(result, ruleDefaultLevel, finding);
+
+        finding.DetectionType = DetectionType.SAST;
 
         // Semgrep has no additional data
 
@@ -351,8 +396,15 @@ public class SarifImportService : ISarifImportService
 
         ParseSharedResultData(result, ruleDefaultLevel, finding);
 
-        if (finding.RuleId.StartsWith("CVE") || finding.RuleId.StartsWith("GHSA") || finding.RuleId.StartsWith("NSWG"))
-            finding.SecurityAdvisories = [finding.RuleId];
+        if (result.RuleId.StartsWith("CVE") || result.RuleId.StartsWith("GHSA") || result.RuleId.StartsWith("NSWG"))
+        {
+            finding.DetectionType = DetectionType.SCA;
+            finding.SecurityAdvisories = [result.RuleId];
+        }
+        else
+        {
+            finding.DetectionType = DetectionType.SECRET;
+        }
 
         return finding;
     }
@@ -363,10 +415,22 @@ public class SarifImportService : ISarifImportService
 
         ParseSharedResultData(result, ruleDefaultLevel, finding);
 
+        finding.DetectionType = DetectionType.DAST;
+
         finding.Attack = result.Locations.FirstOrDefault()?.GetProperty("attack") ??
                          throw new ArgumentException("Result has no attack-property.", nameof(result));
         finding.WebRequest = result.WebRequest.GetStringRepresentation();
         finding.WebResponse = result.WebResponse.GetStringRepresentation();
+
+        var rule = result.Run.Tool.Driver.GetRuleById(result.RuleId);
+
+        if (rule.Relationships?.Any(r => !string.IsNullOrEmpty(r.Target?.Id) && r.Target?.ToolComponent?.Name == "CWE") == true)
+        {
+            finding.CweIds = rule.Relationships
+                .Where(r => !string.IsNullOrEmpty(r.Target?.Id) && r.Target?.ToolComponent?.Name == "CWE")
+                .Select(r => $"CWE-{r.Target.Id}")
+                .ToList();
+        }
 
         return finding;
     }

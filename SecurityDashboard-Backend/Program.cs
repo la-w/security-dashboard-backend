@@ -1,7 +1,6 @@
 using System.Reflection;
 using AspNetCore.Authentication.ApiKey;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -82,7 +81,7 @@ try
     var allowedOriginsConfig = builder.Configuration.GetSection("AllowedOrigins");
     var allowedOrigins = allowedOriginsConfig.GetChildren()
         .Select(x => x.Value)
-        .Where(x => x != null)
+        .Where(x => !string.IsNullOrEmpty(x))
         .Cast<string>()
         .ToArray();
 
@@ -107,6 +106,7 @@ try
         options.InputFormatters.Insert(0, new SarifInputFormatter());
         options.OutputFormatters.Insert(0, new SarifOutputFormatter());
     });
+
     // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen(options =>
@@ -141,14 +141,16 @@ try
     // Configure forwarded headers
     builder.Services.Configure<ForwardedHeadersOptions>(options =>
     {
-        options.ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedFor;
+        options.ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedHost;
 
+        options.AllowedHosts.Clear();
         options.KnownNetworks.Clear();
         options.KnownProxies.Clear();
     });
 
     // Add custom services
     builder.Services.AddScoped<ISarifImportService, SarifImportService>();
+    builder.Services.AddScoped<IFindingsDeduplicationService, FindingsDeduplicationService>();
 
     var app = builder.Build();
 
