@@ -1,4 +1,5 @@
-﻿using Microsoft.CodeAnalysis.Sarif;
+﻿using System.Text.Json.Serialization;
+using Microsoft.CodeAnalysis.Sarif;
 using Microsoft.EntityFrameworkCore;
 
 namespace SecurityDashboard_Backend.DomainModel;
@@ -8,7 +9,9 @@ public class ToolRule
 {
     public int Id { get; set; }
 
+    [Newtonsoft.Json.JsonConverter(typeof(JsonStringEnumConverter))]
     public SarifTool Tool { get; set; }
+
     public string RuleId { get; set; }
     public string Name { get; set; }
     public FailureLevel? DefaultLevel { get; set; }
@@ -19,4 +22,6 @@ public class ToolRule
     public string? HelpUri { get; set; }
 
     public string? CvssVector { get; set; }
+
+    public List<ToolFinding> Findings { get; set; } = new();
 }

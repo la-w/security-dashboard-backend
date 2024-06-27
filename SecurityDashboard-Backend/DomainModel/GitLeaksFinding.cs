@@ -1,6 +1,6 @@
 ﻿namespace SecurityDashboard_Backend.DomainModel;
 
-public class GitLeaksFinding : Finding
+public class GitLeaksFinding : ToolFinding
 {
     public string CommitHash { get; set; }
     public string CommitMessage { get; set; }
