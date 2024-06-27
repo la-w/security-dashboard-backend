@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using SecurityDashboard_Backend.DomainModel;
+using System.ComponentModel.DataAnnotations;
 
 namespace SecurityDashboard_Backend.Models;
 
@@ -11,7 +12,7 @@ public class PipelineRunDto
     /// (GitLab Global) Pipeline-ID
     /// </summary>
     /// <example>1234</example>
-    public long PipelineId { get; set; }
+    public int PipelineId { get; set; }
 
     /// <summary>
     /// Date and Time when the Pipeline was created

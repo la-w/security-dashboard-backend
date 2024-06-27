@@ -1,5 +1,3 @@
 ﻿namespace SecurityDashboard_Backend.DomainModel;
 
-public class OwaspDependencyCheckFinding : ToolFinding
-{
-}
+public class OwaspDependencyCheckFinding : Finding {}

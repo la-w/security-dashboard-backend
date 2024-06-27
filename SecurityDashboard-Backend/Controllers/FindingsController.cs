@@ -30,7 +30,7 @@ public class FindingsController : ControllerBase
         if (pipelineRun == null)
             return BadRequest("Pipeline not found");
 
-        var findingsQuery = _context.ToolFindings.AsNoTracking()
+        var findingsQuery = _context.Findings.AsNoTracking()
             .Where(f => f.PipelineRunId == pipelineRun.Id)
             .AsAsyncEnumerable();
 

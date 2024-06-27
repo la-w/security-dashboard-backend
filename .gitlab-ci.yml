@@ -18,7 +18,6 @@ stages:
   - deploy
   - dast1
   - teardown
-  - send-reports
 
 test:
   image: mcr.microsoft.com/dotnet/sdk:8.0
@@ -104,10 +103,10 @@ owasp_dependency_check:
 docker-build:
   stage: package
   script:
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker build -t $IMAGE_TAG -t $IMAGE_TAG_LATEST ./SecurityDashboard-Backend
-    - docker push $IMAGE_TAG
-    - docker push $IMAGE_TAG_LATEST
+  - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  - docker build -t $IMAGE_TAG -t $IMAGE_TAG_LATEST ./SecurityDashboard-Backend
+  - docker push $IMAGE_TAG
+  - docker push $IMAGE_TAG_LATEST
 
 container_scanning:
   stage: container-scanning
@@ -159,25 +158,6 @@ deploy:
   only:
     - main
 
-deploy-dev:
-  image: alpine:latest
-  stage: deploy
-  script:
-    - chmod og= $SSH_KEY
-    - apk update && apk add openssh-client
-    - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY"
-    - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker pull $IMAGE_TAG"
-    - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker container rm -f dashboard-backend_dev || true"
-    - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker run -d --env ASPNETCORE_ENVIRONMENT=DEVELOPMENT --env ApiKey__ApiKey=IAmASecretApiKey --hostname backend-dev --network nginx_net --name dashboard-backend_dev --restart unless-stopped $IMAGE_TAG"
-  environment:
-    name: dev
-    url: https://backend-dev.tbdpwl.dynv6.net
-  only:
-    - dev
-  artifacts:
-    paths:
-      - send-reports.sh
-
 deploy_review_app:
   image: alpine:latest
   stage: deploy
@@ -185,6 +165,8 @@ deploy_review_app:
     - chmod og= $SSH_KEY
     - apk update && apk add openssh-client jq bash curl
     - bash nginx-api.sh --hostname "dashboard-backend-$CI_ENVIRONMENT_SLUG" --port 8080 up
+    - awk 'BEGIN{port=ENVIRON["CI_ENVIRONMENT_URL"]} {gsub(/\{REVIEW_URL\}/,port)} 1' DAST.fluidattacks.yaml > tmp.yaml && mv tmp.yaml DAST.fluidattacks.yaml
+    - awk 'BEGIN{port=ENVIRON["CI_ENVIRONMENT_URL"]} {gsub(/\{REVIEW_URL\}/,port)} 1' zap.yaml > tmp.yaml && mv tmp.yaml zap.yaml
   script:
     - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY"
     - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker pull $IMAGE_TAG"
@@ -197,12 +179,10 @@ deploy_review_app:
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
       when: never
-    - if: $CI_COMMIT_BRANCH == "dev"
-      when: never
     - if: $CI_COMMIT_BRANCH
   artifacts:
-    paths:
-      - nginx-api.sh
+      paths:
+        - nginx-api.sh
 
 dast_prepare:
   stage: dast1
@@ -214,8 +194,10 @@ dast_prepare:
   script:
     - git branch -D $CI_COMMIT_REF_NAME || true
     - git checkout -b $CI_COMMIT_REF_NAME
-  only:
-    - dev
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: never
+    - if: $CI_COMMIT_BRANCH
 
 dast_fluid_attacks:
   stage: dast1
@@ -230,8 +212,10 @@ dast_fluid_attacks:
     when: always
     paths:
       - Fluid-Attacks-DAST-Results.sarif
-  only:
-    - dev
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: never
+    - if: $CI_COMMIT_BRANCH
 
 dast_zap:
   stage: dast1
@@ -246,8 +230,10 @@ dast_zap:
     when: always
     paths:
       - Zap-Report.sarif*
-  only:
-    - dev
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: never
+    - if: $CI_COMMIT_BRANCH
 
 teardown_review_environment:
   image: alpine:latest
@@ -268,19 +254,5 @@ teardown_review_environment:
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
       when: never
-    - if: $CI_COMMIT_BRANCH == "dev"
-      when: never
     - if: $CI_COMMIT_BRANCH
       when: manual
-
-send_reports:
-  stage: send-reports
-  image: alpine/curl
-  variables:
-    GIT_STRATEGY: none
-  before_script:
-    - apk update && apk add bash
-  script:
-    - bash send-reports.sh
-  only:
-    - dev
