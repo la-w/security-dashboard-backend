@@ -1,5 +1,5 @@
 ﻿namespace SecurityDashboard_Backend.DomainModel;
 
-public class SemgrepFinding : Finding
+public class SemgrepFinding : ToolFinding
 {
 }
