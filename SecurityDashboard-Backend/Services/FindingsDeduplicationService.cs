@@ -56,12 +56,16 @@ public class FindingsDeduplicationService : IFindingsDeduplicationService
             var timeDast = stopwatch.Elapsed - timeSast - timeSca;
             _logger.LogInformation("Deduplicated DAST findings in {Time}", timeDast);
 
+            await DeduplicateSecretAsync(pipelineRun.PipelineRunId);
+            var timeSecret = stopwatch.Elapsed - timeSast - timeSca - timeDast;
+            _logger.LogInformation("Deduplicated SECRET findings in {Time}", timeSecret);
+
             await CreateMissingPipelineFindingsAsync(pipelineRun.PipelineRunId);
-            var timeMissing = stopwatch.Elapsed - timeSast - timeSca - timeDast;
+            var timeMissing = stopwatch.Elapsed - timeSast - timeSca - timeDast - timeSecret;
             _logger.LogInformation("Created missing pipeline findings in {Time}", timeMissing);
 
             await CopyFalsePositiveStateAsync(pipelineRun.PipelineRunId, pipelineRun.RepositoryId, pipelineRun.Branch);
-            var timeFalsePositive = stopwatch.Elapsed - timeSast - timeSca - timeDast - timeMissing;
+            var timeFalsePositive = stopwatch.Elapsed - timeSast - timeSca - timeDast - timeSecret - timeMissing;
             _logger.LogInformation("Copied false positive state in {Time}", timeFalsePositive);
 
             await transaction.CommitAsync();
@@ -336,6 +340,46 @@ public class FindingsDeduplicationService : IFindingsDeduplicationService
         {
             foreach (var pipelineFinding in pipelineFindings)
                 _logger.LogDebug("Deduplicated {FindingsCount} DAST findings to one pipeline finding.", pipelineFinding.Findings.Distinct().Count());
+        }
+
+        await _context.SaveChangesAsync();
+    }
+
+    private async Task DeduplicateSecretAsync(long pipelineRunId)
+    {
+        var secretFindings = await _context.ToolFindings
+            .Where(tf => tf.PipelineRunId == pipelineRunId && tf.DetectionType == DetectionType.SECRET)
+            .ToListAsync();
+
+        var groupedSecretFindings = secretFindings.GroupBy(f => new { f.Location, f.Snippet }).ToDictionary(g => g.Key);
+
+        var pipelineFindings = new List<PipelineFinding>();
+
+        foreach (var (key, groupedFindings) in groupedSecretFindings)
+        {
+            var pipelineFinding = new PipelineFinding
+            {
+                Level = groupedFindings.Max(g => g.Level),
+                PipelineRunId = pipelineRunId,
+                CweIds = groupedFindings.SelectMany(g => g.CweIds).Distinct().ToList(),
+                SecurityAdvisories = groupedFindings.SelectMany(g => g.SecurityAdvisories).Distinct().ToList(),
+                DetectionType = DetectionType.SECRET,
+                Description = groupedFindings.MinBy(f => f.Tool)!.Description,
+                Findings = groupedFindings.ToList(),
+                Location = key.Location,
+                ToolRuleId = groupedFindings.MinBy(f => f.Tool)!.ToolRuleId
+            };
+
+            pipelineFindings.Add(pipelineFinding);
+        }
+
+        await _context.PipelineFindings.AddRangeAsync(pipelineFindings);
+
+        if (_logger.IsEnabled(LogLevel.Debug))
+        {
+            foreach (var pipelineFinding in pipelineFindings)
+                _logger.LogDebug("Deduplicated {FindingsCount} SECRET findings to one pipeline finding: {Location}",
+                    pipelineFinding.Findings.Distinct().Count(), pipelineFinding.Location);
         }
 
         await _context.SaveChangesAsync();
