@@ -91,8 +91,6 @@ owasp_dependency_check:
   image:
     name: registry.gitlab.com/gitlab-ci-utils/docker-dependency-check:latest
     entrypoint: [""]
-  before_script:
-    - export JAVA_TOOL_OPTIONS=-Xmx2G
   script:
     - >
       /usr/share/dependency-check/bin/dependency-check.sh --scan "./" --format SARIF
