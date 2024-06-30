@@ -33,7 +33,7 @@ public class SecurityRequirementsOperationFilter : IOperationFilter
         }
         else if (requiredPolicies.Any(p => p == Policies.OAuthUser))
         {
-            operation.Responses.Add("401", new OpenApiResponse { Description = "Unauthorized)" });
+            operation.Responses.Add("401", new OpenApiResponse { Description = "Unauthorized" });
             operation.Responses.Add("403", new OpenApiResponse { Description = "Forbidden" });
 
             var oauthScheme = new OpenApiSecurityScheme

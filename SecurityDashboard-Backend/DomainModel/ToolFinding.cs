@@ -27,6 +27,8 @@ public abstract class ToolFinding : FindingBase
     public ToolRule ToolRule { get; set; }
 
     public long? PipelineFindingId { get; set; }
+
+    [JsonIgnore]
     public PipelineFinding? PipelineFinding { get; set; }
 }
 

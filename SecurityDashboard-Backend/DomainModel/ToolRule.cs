@@ -9,7 +9,7 @@ public class ToolRule
 {
     public int Id { get; set; }
 
-    [Newtonsoft.Json.JsonConverter(typeof(JsonStringEnumConverter))]
+    [JsonConverter(typeof(JsonStringEnumConverter))]
     public SarifTool Tool { get; set; }
 
     public string RuleId { get; set; }
@@ -23,5 +23,6 @@ public class ToolRule
 
     public string? CvssVector { get; set; }
 
+    [JsonIgnore]
     public List<ToolFinding> Findings { get; set; } = new();
 }
