@@ -94,7 +94,7 @@ owasp_dependency_check:
   script:
     - >
       /usr/share/dependency-check/bin/dependency-check.sh --scan "./" --format SARIF
-      --project "$CI_PROJECT_NAME" --exclude '**/arbitraryFileWrite.zip' --exclude '**/passwordProtected.zip' --exclude '**/videoExploit.zip'
+      --project "$CI_PROJECT_NAME" --nvdApiKey $NVD_API_KEY --exclude '**/arbitraryFileWrite.zip' --exclude '**/passwordProtected.zip' --exclude '**/videoExploit.zip'
   allow_failure: true
   artifacts:
     when: always
