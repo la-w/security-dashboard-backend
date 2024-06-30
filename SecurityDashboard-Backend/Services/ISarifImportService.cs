@@ -4,5 +4,5 @@ namespace SecurityDashboard_Backend.Services;
 
 public interface ISarifImportService
 {
-    Task ImportAsync(SarifLog sarifLog, int pipelineId);
+    Task ImportAsync(SarifLog sarifLog, long pipelineId);
 }

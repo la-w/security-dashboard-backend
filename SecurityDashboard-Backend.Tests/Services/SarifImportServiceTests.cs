@@ -201,11 +201,10 @@ public class SarifImportServiceTests : IAsyncLifetime
             PipelineRun = pipelineRun,
             ToolRule = toolRule,
             Snippet = "some-snippet",
-            RuleId = "some-rule-id",
             SnippetStartLine = 0,
             Description = "some-description",
         };
-        await _context.Findings.AddAsync(finding);
+        await _context.ToolFindings.AddAsync(finding);
         await _context.SaveChangesAsync();
 
         var sarifLog = new SarifLog
@@ -526,7 +525,7 @@ public class SarifImportServiceTests : IAsyncLifetime
         await action.Should().NotThrowAsync();
         (await _context.ToolRules.AsNoTracking().Where(r => r.Tool == sarifTool).CountAsync())
             .Should().Be(ruleCount);
-        (await _context.Findings.AsNoTracking().Where(f => f.Tool == sarifTool && f.PipelineRun.PipelineId == 1234).CountAsync())
+        (await _context.ToolFindings.AsNoTracking().Where(f => f.Tool == sarifTool && f.PipelineRun.PipelineId == 1234).CountAsync())
             .Should().Be(resultsCount);
     }
 
@@ -555,23 +554,60 @@ public class SarifImportServiceTests : IAsyncLifetime
 
         // Assert
         await action.Should().NotThrowAsync();
-        (await _context.Findings.AsNoTracking().Where(f => f.Tool == SarifTool.FluidAttacks && f.PipelineRun.PipelineId == 1234)
+        (await _context.ToolFindings.AsNoTracking().Where(f => f.Tool == SarifTool.FluidAttacks && f.PipelineRun.PipelineId == 1234)
             .OfType<FluidAttacksFinding>()
             .AnyAsync(f => f.Cvss31Vector != null)).Should().BeTrue();
-        (await _context.Findings.AsNoTracking().Where(f => f.Tool == SarifTool.FluidAttacks && f.PipelineRun.PipelineId == 1234)
+        (await _context.ToolFindings.AsNoTracking().Where(f => f.Tool == SarifTool.FluidAttacks && f.PipelineRun.PipelineId == 1234)
             .OfType<FluidAttacksFinding>()
             .AnyAsync(f => f.Cvss40Vector != null)).Should().BeTrue();
-        (await _context.Findings.AsNoTracking().Where(f => f.Tool == SarifTool.FluidAttacks && f.PipelineRun.PipelineId == 1234)
+        (await _context.ToolFindings.AsNoTracking().Where(f => f.Tool == SarifTool.FluidAttacks && f.PipelineRun.PipelineId == 1234)
             .OfType<FluidAttacksFinding>()
             .AnyAsync(f => f.CweIds.Count > 0)).Should().BeTrue();
+        (await _context.ToolFindings.AsNoTracking().Where(f => f.Tool == SarifTool.FluidAttacks && f.PipelineRun.PipelineId == 1234)
+            .AllAsync(f => f.Level != FailureLevel.None)).Should().BeTrue();
 
         if (!isDast)
         {
-            (await _context.Findings.AsNoTracking().Where(f => f.Tool == SarifTool.FluidAttacks && f.PipelineRun.PipelineId == 1234)
+            (await _context.ToolFindings.AsNoTracking().Where(f => f.Tool == SarifTool.FluidAttacks && f.PipelineRun.PipelineId == 1234)
                 .OfType<FluidAttacksFinding>()
                 .AnyAsync(f => f.SecurityAdvisories.Count > 0)).Should().BeTrue();
         }
     }
+
+    [Theory]
+    [InlineData("FluidAttacks-SAST")]
+    [InlineData("FluidAttacks-DAST")]
+    public async Task ImportAsync_WhenCalledWithFluidAttacksSarifLog_ShouldNotImportSameLogTwice(string fileName)
+    {
+        // Arrange
+        var pipelineRun = new PipelineRun
+        {
+            PipelineId = 1234,
+            Branch = "some-branch",
+            CommitHash = "0123456789abcdef0123456789abcdef01234567",
+            CreatedAt = DateTimeOffset.UtcNow,
+            Repository = new Repository { Name = "some-name", Url = "https://git.example.com/some-name" }
+        };
+        await _context.PipelineRuns.AddAsync(pipelineRun);
+        await _context.SaveChangesAsync();
+
+        var sarifLog = ReadSarifTestFile(fileName);
+
+
+        // Act
+        var action = () => _importService.ImportAsync(sarifLog, 1234);
+
+
+        // Assert
+        await action.Should().NotThrowAsync();
+        var previousCount = await _context.ToolFindings.AsNoTracking()
+            .Where(f => f.Tool == SarifTool.FluidAttacks && f.PipelineRun.PipelineId == 1234).CountAsync();
+        await action.Should().NotThrowAsync();
+        var newCount = await _context.ToolFindings.AsNoTracking().Where(f => f.Tool == SarifTool.FluidAttacks && f.PipelineRun.PipelineId == 1234)
+            .CountAsync();
+        newCount.Should().Be(previousCount);
+    }
+
 
     [Fact]
     public async Task ImportAsync_WhenCalledWithTrivySarifLog_ShouldFillResultDetails()
@@ -596,7 +632,7 @@ public class SarifImportServiceTests : IAsyncLifetime
 
         // Assert
         await action.Should().NotThrowAsync();
-        (await _context.Findings.AsNoTracking().Where(f => f.Tool == SarifTool.Trivy && f.PipelineRun.PipelineId == 1234)
+        (await _context.ToolFindings.AsNoTracking().Where(f => f.Tool == SarifTool.Trivy && f.PipelineRun.PipelineId == 1234)
             .OfType<TrivyFinding>()
             .AnyAsync(f => f.SecurityAdvisories.Count > 0)).Should().BeTrue();
     }
@@ -628,7 +664,7 @@ public class SarifImportServiceTests : IAsyncLifetime
                 .Where(r => r.Tool == SarifTool.OwaspDependencyCheck)
                 .AnyAsync(r => !string.IsNullOrWhiteSpace(r.CvssVector)))
             .Should().BeTrue();
-        (await _context.Findings.AsNoTracking()
+        (await _context.ToolFindings.AsNoTracking()
                 .Where(f => f.Tool == SarifTool.OwaspDependencyCheck)
                 .AnyAsync(f => f.SecurityAdvisories.Count > 0))
             .Should().BeTrue();
@@ -651,19 +687,18 @@ public class SarifImportServiceTests : IAsyncLifetime
 
         var sarifLog = ReadSarifTestFile("OwaspZap");
 
-
         // Act
         var action = () => _importService.ImportAsync(sarifLog, 1234);
 
         // Assert
         await action.Should().NotThrowAsync();
-        (await _context.Findings.AsNoTracking().Where(f => f.Tool == SarifTool.OwaspZap && f.PipelineRun.PipelineId == 1234)
+        (await _context.ToolFindings.AsNoTracking().Where(f => f.Tool == SarifTool.OwaspZap && f.PipelineRun.PipelineId == 1234)
             .OfType<OwaspZapFinding>()
             .AnyAsync(f => !string.IsNullOrEmpty(f.Attack))).Should().BeTrue();
-        (await _context.Findings.AsNoTracking().Where(f => f.Tool == SarifTool.OwaspZap && f.PipelineRun.PipelineId == 1234)
+        (await _context.ToolFindings.AsNoTracking().Where(f => f.Tool == SarifTool.OwaspZap && f.PipelineRun.PipelineId == 1234)
             .OfType<OwaspZapFinding>()
             .AnyAsync(f => !string.IsNullOrEmpty(f.WebRequest))).Should().BeTrue();
-        (await _context.Findings.AsNoTracking().Where(f => f.Tool == SarifTool.OwaspZap && f.PipelineRun.PipelineId == 1234)
+        (await _context.ToolFindings.AsNoTracking().Where(f => f.Tool == SarifTool.OwaspZap && f.PipelineRun.PipelineId == 1234)
             .OfType<OwaspZapFinding>()
             .AnyAsync(f => !string.IsNullOrEmpty(f.WebResponse))).Should().BeTrue();
     }

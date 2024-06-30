@@ -1,13 +1,13 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using Microsoft.EntityFrameworkCore;
+using System.Text.Json.Serialization;
 
 namespace SecurityDashboard_Backend.DomainModel;
 
 public class PipelineRun
 {
-    public int Id { get; set; }
+    public long Id { get; set; }
 
-    public int PipelineId { get; set; }
+    public long PipelineId { get; set; }
 
     public DateTimeOffset CreatedAt { get; set; }
 
@@ -20,5 +20,9 @@ public class PipelineRun
     public int RepositoryId { get; set; }
     public Repository Repository { get; set; }
 
-    public List<Finding> Findings { get; set; }
+    [JsonIgnore]
+    public List<ToolFinding> ToolFindings { get; set; } = new();
+
+    [JsonIgnore]
+    public List<PipelineFinding> PipelineFindings { get; set; } = new();
 }
