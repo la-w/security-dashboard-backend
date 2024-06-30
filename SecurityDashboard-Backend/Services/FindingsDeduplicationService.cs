@@ -1,4 +1,5 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Diagnostics;
+using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using SecurityDashboard_Backend.DomainModel;
 
@@ -21,7 +22,13 @@ public class FindingsDeduplicationService : IFindingsDeduplicationService
     {
         var pipelineRun = await _context.PipelineRuns.AsNoTracking()
             .Where(pr => pr.PipelineId == pipelineId)
-            .Select(pr => new { PipelineRunId = pr.Id, FindingsCount = pr.PipelineFindings.Count })
+            .Select(pr => new
+            {
+                pr.Id,
+                pr.RepositoryId,
+                pr.Branch,
+                FindingsCount = pr.PipelineFindings.Count
+            })
             .SingleOrDefaultAsync();
 
         if (pipelineRun == null)
@@ -34,28 +41,45 @@ public class FindingsDeduplicationService : IFindingsDeduplicationService
 
         try
         {
-            await DeduplicateSastAsync(pipelineRun.PipelineRunId);
+            var stopwatch = Stopwatch.StartNew();
 
-            await DeduplicateScaAsync(pipelineRun.PipelineRunId);
+            await DeduplicateSastAsync(pipelineRun.Id);
+            var timeSast = stopwatch.Elapsed;
+            _logger.LogInformation("Deduplicated SAST findings in {Time}", timeSast);
 
-            await DeduplicateDastAsync(pipelineRun.PipelineRunId);
+            await DeduplicateScaAsync(pipelineRun.Id);
+            var timeSca = stopwatch.Elapsed - timeSast;
+            _logger.LogInformation("Deduplicated SCA findings in {Time}", timeSca);
 
-            await CreateMissingPipelineFindingsAsync(pipelineRun.PipelineRunId);
+            await DeduplicateDastAsync(pipelineRun.Id);
+            var timeDast = stopwatch.Elapsed - timeSast - timeSca;
+            _logger.LogInformation("Deduplicated DAST findings in {Time}", timeDast);
+
+            await CreateMissingPipelineFindingsAsync(pipelineRun.Id);
+            var timeMissing = stopwatch.Elapsed - timeSast - timeSca - timeDast;
+            _logger.LogInformation("Created missing pipeline findings in {Time}", timeMissing);
+
+            await CopyFalsePositiveStateAsync(pipelineRun.Id, pipelineRun.RepositoryId, pipelineRun.Branch);
+            var timeFalsePositive = stopwatch.Elapsed - timeSast - timeSca - timeDast - timeMissing;
+            _logger.LogInformation("Copied false positive state in {Time}", timeFalsePositive);
 
             await transaction.CommitAsync();
 
+            stopwatch.Stop();
+            var totalTime = stopwatch.Elapsed;
+
             var deduplicatedFindingsCount = await _context.PipelineFindings.AsNoTracking()
-                .Where(pf => pf.PipelineRunId == pipelineRun.PipelineRunId)
+                .Where(pf => pf.PipelineRunId == pipelineRun.Id)
                 .CountAsync();
             var totalFindingsCount = await _context.ToolFindings.AsNoTracking()
-                .Where(tf => tf.PipelineRunId == pipelineRun.PipelineRunId)
+                .Where(tf => tf.PipelineRunId == pipelineRun.Id)
                 .CountAsync();
 
             var deduplicationRate = (decimal)deduplicatedFindingsCount / totalFindingsCount;
 
             _logger.LogInformation(
-                "{TotalFindings} findings have been deduplicated to {DeduplicatedFindings} PipelineFindings (Rate: {DeduplicationRate:P2})",
-                totalFindingsCount, deduplicatedFindingsCount, deduplicationRate);
+                "{TotalFindings} findings have been deduplicated to {DeduplicatedFindings} PipelineFindings (Rate: {DeduplicationRate:P2}, Time needed: {TotalTime})",
+                totalFindingsCount, deduplicatedFindingsCount, deduplicationRate, totalTime);
         }
         catch (Exception ex)
         {
@@ -340,5 +364,54 @@ public class FindingsDeduplicationService : IFindingsDeduplicationService
         }
 
         await _context.SaveChangesAsync();
+    }
+
+    private async Task CopyFalsePositiveStateAsync(long pipelineRunId, int repositoryId, string branch)
+    {
+        var previousPipelineRun = await _context.PipelineRuns.AsNoTracking()
+            .Where(pr => pr.Id != pipelineRunId && pr.RepositoryId == repositoryId && pr.Branch == branch)
+            .OrderByDescending(pr => pr.PipelineId)
+            .Select(pr => new { pr.Id })
+            .FirstOrDefaultAsync();
+
+        if (previousPipelineRun == null)
+        {
+            _logger.LogInformation("Cannot copy false positive state, no previous pipeline run found.");
+            return;
+        }
+
+        var currentPipelineFindings = await _context.PipelineFindings
+            .Where(pf => pf.PipelineRunId == pipelineRunId)
+            .ToListAsync();
+        var previousPipelineFindings = await _context.PipelineFindings.AsNoTracking()
+            .Where(pf => pf.PipelineRunId == previousPipelineRun.Id)
+            .ToListAsync();
+
+        var copiedFalsePositives = 0;
+
+        foreach (var currentPipelineFinding in currentPipelineFindings)
+        {
+            try
+            {
+                var previousFinding = previousPipelineFindings.SingleOrDefault(pf => pf.ToolRuleId == currentPipelineFinding.ToolRuleId
+                                                                                     && pf.Location == currentPipelineFinding.Location
+                                                                                     && pf.DetectionType == currentPipelineFinding.DetectionType
+                                                                                     && pf.Level == currentPipelineFinding.Level);
+
+                if (previousFinding == null)
+                    continue;
+
+                currentPipelineFinding.IsFalsePositive = previousFinding.IsFalsePositive;
+                copiedFalsePositives++;
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogDebug("More than one previous finding matches finding #{FindingId}", currentPipelineFinding.Id);
+            }
+        }
+
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("Successfully copied false positive state for {CopiedFalsePositives} findings.", copiedFalsePositives);
     }
 }
