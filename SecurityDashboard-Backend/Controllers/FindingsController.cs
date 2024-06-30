@@ -131,7 +131,7 @@ public class FindingsController : ControllerBase
 
         var absoluteFindings = await _context.PipelineRuns.AsNoTracking()
             .Where(pr => pr.RepositoryId == pipelineRun.RepositoryId && pr.Branch == pipelineRun.Branch)
-            .OrderByDescending(pr => pr.PipelineId)
+            .OrderBy(pr => pr.PipelineId)
             .Select(pr => new
             {
                 pr.CreatedAt, pr.PipelineId, Count = pr.PipelineFindings.Count(pf => !pf.IsFalsePositive)
