@@ -46,6 +46,7 @@ for tool in $listTools; do
     --show-error \
     --output /dev/null \
     --write-out '%{response_code}' \
+    --header 'Content-Type: application/sarif+json' \
     --header 'Authorization: ApiKey '"$BACKEND_API_KEY"'' \
     --request POST)
     if [ $RESPONSE_CODE = 200 ]
