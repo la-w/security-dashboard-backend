@@ -89,14 +89,14 @@ sast_git_leaks:
 owasp_dependency_check:
   stage: dependency-scanning
   image:
-    name: owasp/dependency-check:latest
+    name: registry.gitlab.com/gitlab-ci-utils/docker-dependency-check:latest
     entrypoint: [""]
   before_script:
     - export JAVA_TOOL_OPTIONS=-Xmx2G
   script:
     - >
       /usr/share/dependency-check/bin/dependency-check.sh --scan "./" --format SARIF
-      --project "$CI_PROJECT_NAME" --nvdApiKey "$NVD_API_KEY" --exclude '**/arbitraryFileWrite.zip' --exclude '**/passwordProtected.zip' --exclude '**/videoExploit.zip'
+      --project "$CI_PROJECT_NAME" --noupdate --exclude '**/arbitraryFileWrite.zip' --exclude '**/passwordProtected.zip' --exclude '**/videoExploit.zip'
   allow_failure: true
   artifacts:
     when: always
