@@ -48,7 +48,7 @@ for tool in $listTools; do
     --write-out '%{response_code}' \
     --header 'Content-Type: application/sarif+json' \
     --header 'Authorization: ApiKey '"$BACKEND_API_KEY"'' \
-    --request POST)
+    --data '@'"$tool"'')
     if [ $RESPONSE_CODE = 200 ]
     then
       printf -- "%s\n\n" "Report sent successfully"
