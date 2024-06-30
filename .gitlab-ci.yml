@@ -152,7 +152,7 @@ deploy:
     - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY"
     - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker pull $IMAGE_TAG"
     - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker container rm -f dashboard-backend_production || true"
-    - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker run -d -v /home/ubuntu/db/prod/SecurityDashboard.sqlite:/app/SecurityDashboard.sqlite --env ApiKey__ApiKey=$BACKEND_API_KEY --hostname backend --network nginx_net --name dashboard-backend_production --restart unless-stopped $IMAGE_TAG"
+    - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker run -d --mount type=bind,source=/home/ubuntu/db/prod/SecurityDashboard.sqlite,target=/app/SecurityDashboard.sqlite --env ApiKey__ApiKey=$BACKEND_API_KEY --hostname backend --network nginx_net --name dashboard-backend_production --restart unless-stopped $IMAGE_TAG"
   environment:
     name: production
     url: https://backend.tbdpwl.dynv6.net
@@ -168,7 +168,7 @@ deploy-dev:
     - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY"
     - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker pull $IMAGE_TAG"
     - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker container rm -f dashboard-backend_dev || true"
-    - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker run -d -v /home/ubuntu/db/dev/SecurityDashboard.sqlite:/app/SecurityDashboard.sqlite --env ASPNETCORE_ENVIRONMENT=DEVELOPMENT --env ApiKey__ApiKey=IAmASecretApiKey --hostname backend-dev --network nginx_net --name dashboard-backend_dev --restart unless-stopped $IMAGE_TAG"
+    - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker run -d --mount type=bind,source=/home/ubuntu/db/dev/SecurityDashboard.sqlite,target=/app/SecurityDashboard.sqlite --env ASPNETCORE_ENVIRONMENT=DEVELOPMENT --env ApiKey__ApiKey=IAmASecretApiKey --hostname backend-dev --network nginx_net --name dashboard-backend_dev --restart unless-stopped $IMAGE_TAG"
   environment:
     name: dev
     url: https://backend-dev.tbdpwl.dynv6.net
