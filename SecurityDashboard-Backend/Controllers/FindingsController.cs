@@ -6,7 +6,6 @@ using SecurityDashboard_Backend.Authentication;
 
 namespace SecurityDashboard_Backend.Controllers;
 
-[ExcludeFromCodeCoverage(Justification = "Just a Demo-Controller, will be replaced")]
 [ApiController]
 [Route("api/[controller]")]
 public class FindingsController : ControllerBase
@@ -35,5 +34,25 @@ public class FindingsController : ControllerBase
             .AsAsyncEnumerable();
 
         return Ok(findingsQuery);
+    }
+
+    [HttpPost]
+    [Route("SetFalsePositive")]
+    [Authorize(Policies.OAuthUser)]
+    public async Task<IActionResult> PostSetFalsePositiveAsync(long findingId, bool isFalsePositive)
+    {
+        if (findingId <= 0)
+            return BadRequest("Invalid findingId.");
+
+        var pipelineFinding = await _context.PipelineFindings.FindAsync(findingId);
+
+        if (pipelineFinding == null)
+            return BadRequest("PipelineFinding does not exist.");
+
+        pipelineFinding.IsFalsePositive = isFalsePositive;
+
+        await _context.SaveChangesAsync();
+
+        return Ok();
     }
 }
