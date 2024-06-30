@@ -1,5 +1,5 @@
 ﻿namespace SecurityDashboard_Backend.DomainModel;
 
-public class TrivyFinding : Finding
+public class TrivyFinding : ToolFinding
 {
 }
