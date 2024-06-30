@@ -168,7 +168,7 @@ deploy-dev:
     - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY"
     - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker pull $IMAGE_TAG"
     - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker container rm -f dashboard-backend_dev || true"
-    - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker run -d --mount type=bind,source=/home/ubuntu/db/dev/SecurityDashboard.sqlite,target=/app/SecurityDashboard.sqlite --env ASPNETCORE_ENVIRONMENT=DEVELOPMENT --env ApiKey__ApiKey=IAmASecretApiKey --hostname backend-dev --network nginx_net --name dashboard-backend_dev --restart unless-stopped $IMAGE_TAG"
+    - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker run -d --mount type=bind,source=/home/ubuntu/db/dev/SecurityDashboard.sqlite,target=/app/SecurityDashboard.sqlite --env ASPNETCORE_ENVIRONMENT=Development --env ApiKey__ApiKey=IAmASecretApiKey --hostname backend-dev --network nginx_net --name dashboard-backend_dev --restart unless-stopped $IMAGE_TAG"
   environment:
     name: dev
     url: https://backend-dev.tbdpwl.dynv6.net
@@ -189,7 +189,7 @@ deploy_review_app:
     - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY"
     - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker pull $IMAGE_TAG"
     - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker container rm -f dashboard-backend-$CI_ENVIRONMENT_SLUG || true"
-    - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker run -d --env ASPNETCORE_ENVIRONMENT=DEVELOPMENT --env ApiKey__ApiKey=IAmASecretApiKey --hostname dashboard-backend-$CI_ENVIRONMENT_SLUG --network nginx_net --name dashboard-backend-$CI_ENVIRONMENT_SLUG --restart unless-stopped $IMAGE_TAG"
+    - ssh -i $SSH_KEY -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker run -d --env ASPNETCORE_ENVIRONMENT=Development --env ApiKey__ApiKey=IAmASecretApiKey --hostname dashboard-backend-$CI_ENVIRONMENT_SLUG --network nginx_net --name dashboard-backend-$CI_ENVIRONMENT_SLUG --restart unless-stopped $IMAGE_TAG"
   environment:
     name: review/$CI_COMMIT_REF_SLUG
     url: https://dashboard-backend-$CI_ENVIRONMENT_SLUG.tbdpwl.dynv6.net
