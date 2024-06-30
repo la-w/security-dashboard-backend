@@ -154,9 +154,6 @@ try
 
     var app = builder.Build();
 
-    // TODO: REMOVE ME
-    app.UseLogHeaders();
-
     // Add Serilog request logging
     app.UseSerilogRequestLogging(options => { options.IncludeQueryInRequestPath = true; });
 
