@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace SecurityDashboard_Backend.DomainModel;
 
@@ -19,6 +20,9 @@ public class PipelineRun
     public int RepositoryId { get; set; }
     public Repository Repository { get; set; }
 
+    [JsonIgnore]
     public List<ToolFinding> ToolFindings { get; set; } = new();
+
+    [JsonIgnore]
     public List<PipelineFinding> PipelineFindings { get; set; } = new();
 }

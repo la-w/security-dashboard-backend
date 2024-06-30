@@ -24,10 +24,8 @@ public class FindingsDeduplicationService : IFindingsDeduplicationService
             .Where(pr => pr.PipelineId == pipelineId)
             .Select(pr => new
             {
-                pr.Id,
-                pr.RepositoryId,
-                pr.Branch,
-                FindingsCount = pr.PipelineFindings.Count
+                PipelineRunId = pr.Id, FindingsCount = pr.PipelineFindings.Count, ToolFindingsCount = pr.ToolFindings.Count, pr.RepositoryId,
+                pr.Branch
             })
             .SingleOrDefaultAsync();
 
@@ -37,29 +35,32 @@ public class FindingsDeduplicationService : IFindingsDeduplicationService
         if (pipelineRun.FindingsCount > 0)
             throw new ArgumentException("Pipeline was already deduplicated.", nameof(pipelineId));
 
+        if (pipelineRun.ToolFindingsCount == 0)
+            throw new ArgumentException("No findings to deduplicate.", nameof(pipelineId));
+
         await using var transaction = await _context.Database.BeginTransactionAsync();
 
         try
         {
             var stopwatch = Stopwatch.StartNew();
 
-            await DeduplicateSastAsync(pipelineRun.Id);
+            await DeduplicateSastAsync(pipelineRun.PipelineRunId);
             var timeSast = stopwatch.Elapsed;
             _logger.LogInformation("Deduplicated SAST findings in {Time}", timeSast);
 
-            await DeduplicateScaAsync(pipelineRun.Id);
+            await DeduplicateScaAsync(pipelineRun.PipelineRunId);
             var timeSca = stopwatch.Elapsed - timeSast;
             _logger.LogInformation("Deduplicated SCA findings in {Time}", timeSca);
 
-            await DeduplicateDastAsync(pipelineRun.Id);
+            await DeduplicateDastAsync(pipelineRun.PipelineRunId);
             var timeDast = stopwatch.Elapsed - timeSast - timeSca;
             _logger.LogInformation("Deduplicated DAST findings in {Time}", timeDast);
 
-            await CreateMissingPipelineFindingsAsync(pipelineRun.Id);
+            await CreateMissingPipelineFindingsAsync(pipelineRun.PipelineRunId);
             var timeMissing = stopwatch.Elapsed - timeSast - timeSca - timeDast;
             _logger.LogInformation("Created missing pipeline findings in {Time}", timeMissing);
 
-            await CopyFalsePositiveStateAsync(pipelineRun.Id, pipelineRun.RepositoryId, pipelineRun.Branch);
+            await CopyFalsePositiveStateAsync(pipelineRun.PipelineRunId, pipelineRun.RepositoryId, pipelineRun.Branch);
             var timeFalsePositive = stopwatch.Elapsed - timeSast - timeSca - timeDast - timeMissing;
             _logger.LogInformation("Copied false positive state in {Time}", timeFalsePositive);
 
@@ -69,10 +70,10 @@ public class FindingsDeduplicationService : IFindingsDeduplicationService
             var totalTime = stopwatch.Elapsed;
 
             var deduplicatedFindingsCount = await _context.PipelineFindings.AsNoTracking()
-                .Where(pf => pf.PipelineRunId == pipelineRun.Id)
+                .Where(pf => pf.PipelineRunId == pipelineRun.PipelineRunId)
                 .CountAsync();
             var totalFindingsCount = await _context.ToolFindings.AsNoTracking()
-                .Where(tf => tf.PipelineRunId == pipelineRun.Id)
+                .Where(tf => tf.PipelineRunId == pipelineRun.PipelineRunId)
                 .CountAsync();
 
             var deduplicationRate = (decimal)deduplicatedFindingsCount / totalFindingsCount;

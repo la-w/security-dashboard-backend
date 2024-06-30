@@ -28,7 +28,7 @@ test:
     - dotnet tool install -g dotnet-reportgenerator-globaltool
     - '/root/.dotnet/tools/reportgenerator -reports:"./artifacts/*/coverage.cobertura.xml" -targetdir:"./artifacts" -reporttypes:TextSummary'
     - cat ./artifacts/Summary.txt
-  coverage: '/Branch coverage: (\d{1,3}(?:\.\d)?)%/'
+  coverage: '/Line coverage: (\d{1,3}(?:\.\d)?)%/'
   artifacts:
     when: always
     paths:
