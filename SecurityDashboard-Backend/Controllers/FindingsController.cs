@@ -129,15 +129,17 @@ public class FindingsController : ControllerBase
 
         var chartData = new ChartDataDto();
 
-        var absoluteFindings = await _context.PipelineRuns.AsNoTracking()
-            .Where(pr => pr.RepositoryId == pipelineRun.RepositoryId && pr.Branch == pipelineRun.Branch)
-            .OrderBy(pr => pr.PipelineId)
-            .Select(pr => new
-            {
-                pr.CreatedAt, pr.PipelineId, Count = pr.PipelineFindings.Count(pf => !pf.IsFalsePositive)
-            })
-            .Take(10)
-            .ToListAsync();
+        var absoluteFindings = (await _context.PipelineRuns.AsNoTracking()
+                .Where(pr => pr.RepositoryId == pipelineRun.RepositoryId && pr.Branch == pipelineRun.Branch)
+                .OrderByDescending(pr => pr.PipelineId)
+                .Select(pr => new
+                {
+                    pr.CreatedAt, pr.PipelineId, Count = pr.PipelineFindings.Count(pf => !pf.IsFalsePositive)
+                })
+                .Take(10)
+                .ToListAsync())
+            .OrderBy(x => x.PipelineId)
+            .ToList();
 
         chartData.AbsoluteFindings = new ChartData
         {
