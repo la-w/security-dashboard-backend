@@ -57,9 +57,18 @@ try
             policy.AddAuthenticationSchemes(ApiKeyDefaults.AuthenticationScheme)
                 .RequireAuthenticatedUser();
         });
-        options.AddPolicy(Policies.OAuthUser,
-            policy => policy.AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme)
-                .RequireAuthenticatedUser());
+        // Local demo mode (Development only): the GitLab OIDC provider is no longer reachable,
+        // so dashboard read endpoints are opened up. Report upload still requires the API key.
+        if (builder.Environment.IsDevelopment() && builder.Configuration.GetValue<bool>("DemoMode"))
+        {
+            options.AddPolicy(Policies.OAuthUser, policy => policy.RequireAssertion(_ => true));
+        }
+        else
+        {
+            options.AddPolicy(Policies.OAuthUser,
+                policy => policy.AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme)
+                    .RequireAuthenticatedUser());
+        }
     });
 
     // Add Serilog
